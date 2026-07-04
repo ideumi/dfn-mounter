@@ -1,0 +1,187 @@
+#!/usr/bin/chippy
+#
+# dfn-mounter - ui.chh
+#
+
+#@ <MounterGetColumnWidths(width)>
+#@ Returns column widths as a list:
+#@ ''[nameColWidth, fsColWidth, statusColWidth, sizeColWidth]''.
+
+func MounterGetColumnWidths(width)
+{
+	var sizeColWidth = 10;
+	var fsColWidth = 14;
+	var statusColWidth = 28;
+	var nameColWidth = width - fsColWidth - statusColWidth - sizeColWidth - 3;
+
+	return [nameColWidth, fsColWidth, statusColWidth, sizeColWidth];
+}
+
+#@ <MounterDrawHeader(x, y, width)>
+#@ Draws the column header row.
+
+func MounterDrawHeader(x, y, width)
+{
+	var cols = MounterGetColumnWidths(width);
+	var nameColWidth = cols[1];
+	var fsColWidth = cols[2];
+	var statusColWidth = cols[3];
+	var sizeColWidth = cols[4];
+
+	var nameHeader = BFPadText("  DEVICE", nameColWidth, BFALIGNLEFT);
+	var fsHeader = BFPadText("FSTYPE", fsColWidth, BFALIGNLEFT);
+	var statusHeader = BFPadText("STATUS", statusColWidth, BFALIGNRIGHT);
+	var sizeHeader = BFPadText("SIZE", sizeColWidth, BFALIGNRIGHT);
+
+	var header = nameHeader + " " + fsHeader + " " + statusHeader + " " + sizeHeader;
+
+	SetAttribute(COLORBOLD);
+	BFDrawText(x, y, header);
+	SetAttribute(COLORRESET);
+}
+
+#@ <MounterDrawDeviceList(x, y, width, height)>
+#@ Draws the device list.
+
+func MounterDrawDeviceList(x, y, width, height)
+{
+	var cols = MounterGetColumnWidths(width);
+	var nameColWidth = cols[1];
+	var fsColWidth = cols[2];
+	var statusColWidth = cols[3];
+	var sizeColWidth = cols[4];
+
+	var visibleDevices = int(height / FILEROWHEIGHT);
+	var emptyRow = BFPadText("", width, BFALIGNLEFT);
+
+	for devRow = 1 to visibleDevices
+	{
+		var idx = mounterScrollOffset + devRow - 1;
+		var baseY = y + (devRow - 1) * FILEROWHEIGHT;
+
+		if idx >= 1 and idx <= len(mounterDevices) and not IsDeviceEntry(mounterDevices[idx])
+		{
+			var sectionText = BFClipText("── " + mounterDevices[idx]["label"] + " ──", width);
+
+			sectionText = BFPadText(sectionText, width, BFALIGNLEFT);
+
+			SetAttribute(COLORBOLD);
+			BFDrawText(x, baseY, sectionText);
+			SetAttribute(COLORRESET);
+			BFDrawText(x, baseY + 1, emptyRow);
+		}
+		elseif idx >= 1 and idx <= len(mounterDevices)
+		{
+			var dev = mounterDevices[idx];
+			var displayName = DeviceDisplayName(dev);
+			var size = dev["size"];
+			var isSelected = idx == mounterSelectedIndex;
+
+			if isSelected
+			{
+				SetAttribute(COLORBLACK);
+				SetAttribute(COLORBOLD);
+				SetAttribute(COLORBGWHITE);
+			}
+			elseif IsMounted(dev)
+			{
+				SetAttribute(COLORBOLD);
+				SetAttribute(COLORCYAN);
+			}
+			elseif IsLuks(dev)
+			{
+				SetAttribute(COLORBOLD);
+				SetAttribute(COLORMAGENTA);
+			}
+
+			var status = DeviceStatusText(dev, mounterDevices);
+
+			# Optional transport tag in front of the name
+			var tag = "";
+
+			if dev["transport"] == "usb" { tag = "[USB] "; }
+
+			# Build columns
+			var nameText = "  " + tag + displayName;
+			nameText = BFClipText(nameText, nameColWidth);
+			nameText = BFPadText(nameText, nameColWidth, BFALIGNLEFT);
+
+			var fsText = BFClipText(dev["fstype"], fsColWidth);
+			fsText = BFPadText(fsText, fsColWidth, BFALIGNLEFT);
+
+			var sizeText = BFPadText(size, sizeColWidth, BFALIGNRIGHT);
+
+			var statusText = BFClipText(status, statusColWidth);
+			statusText = BFPadText(statusText, statusColWidth, BFALIGNRIGHT);
+
+			var rowText = nameText + " " + fsText + " " + statusText + " " + sizeText;
+
+			BFDrawText(x, baseY, rowText);
+
+			# Spacing
+			BFDrawText(x, baseY + 1, emptyRow);
+		}
+		else
+		{
+			BFDrawText(x, baseY, emptyRow);
+			BFDrawText(x, baseY + 1, emptyRow);
+		}
+
+		SetAttribute(COLORRESET);
+	}
+}
+
+#@ <MounterBottomReserve()>
+#@ Returns the number of rows reserved at the bottom of the screen. If not
+#@ ''KEYBINDSBARHEIGHT'' then ''1'' is returned for the ". binds" hint.
+
+func MounterBottomReserve()
+{
+	if mounterShowKeybinds { return KEYBINDSBARHEIGHT; }
+
+	return 1;
+}
+
+#@ <MounterDrawBottom()>
+#@ Decides if the keybinds bar or the ". binds" hint should be drawn and draws
+#@ them.
+
+func MounterDrawBottom()
+{
+	if mounterShowKeybinds { MounterDrawKeybindsBar(); }
+	else { MounterDrawBottomHint(); }
+}
+
+#@ <MounterDrawBottomHint()>
+#@ Draws the ". binds" hint.
+
+func MounterDrawBottomHint()
+{
+	BFClearRegion(1, mounterScreenHeight, 12, 1);
+
+	SetFGColor256(DFNCOLORDIM);
+	BFDrawText(2, mounterScreenHeight, ". binds");
+	SetAttribute(COLORRESET);
+}
+
+#@ <MounterDrawKeybindsBar()>
+#@ Draws the keybinds help bar at the bottom of the screen.
+
+func MounterDrawKeybindsBar()
+{
+	var rows = [];
+
+	append(rows, []);
+	append(rows, [
+			["↑↓", "Navigate"],
+			["←", "Unmount/Lock"],
+			["→", "Mount/Unlock"],
+			["e", "Eject"],
+			["i", "Info"],
+			["r", "Refresh"],
+			["Esc", "Quit"]
+		]);
+	append(rows, []);
+
+	BFKeybindsBar(1, mounterScreenHeight - KEYBINDSBARHEIGHT + 1, mounterScreenWidth, rows);
+}

@@ -1,0 +1,9 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=dfn-mounter
+Comment=Terminal disk mounter
+Exec=dfn-mounter
+Icon=drive-harddisk
+Terminal=true
+Type=Application
+Categories=System;HardwareSettings;

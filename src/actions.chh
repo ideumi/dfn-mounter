@@ -1,0 +1,146 @@
+#!/usr/bin/chippy
+#
+# dfn-mounter - actions.chh
+#
+
+#@ <HandleActionResult(result)>
+#@ Evaluates the return value of operation ''result''. Displays a dialog with the
+#@ error message in ''result'' if ''not isok(result)'', or a generic error message
+#@ if ''iserr(result)''. The devices list will be reloaded no matter what ''result''
+#@ is.
+
+func HandleActionResult(result)
+{
+	if iserr(result) { MounterShowError("Could not start the operation."); }
+	elseif not isok(result) { MounterShowError(result); }
+
+	MounterRefreshDevices();
+}
+
+#@ <ActionMountSelected()>
+#@ Mounts the selected device if it is an unmounted non LUKS volume.
+
+func ActionMountSelected()
+{
+	var dev = SelectedDevice();
+
+	if iserr(dev) { return; }
+	if IsMounted(dev) { return; }
+	if not IsMountable(dev) { return; }
+
+	HandleActionResult(MountDevice(dev));
+}
+
+#@ <ActionUnmountSelected()>
+#@ Unmounts the selected device if it is currently mounted.
+
+func ActionUnmountSelected()
+{
+	var dev = SelectedDevice();
+
+	if iserr(dev) { return; }
+	if not IsMounted(dev) { return; }
+
+	HandleActionResult(UnmountDevice(dev));
+}
+
+#@ <ActionUnlockSelected()>
+#@ Unlocks the selected LUKS device if it is locked.
+
+func ActionUnlockSelected()
+{
+	var dev = SelectedDevice();
+
+	if iserr(dev) { return; }
+	if not IsLuks(dev) { return; }
+	if IsLuksUnlocked(dev, mounterDevices) { return; }
+
+	UnlockLuks(dev);
+	MounterRefreshDevices();
+}
+
+#@ <ActionLockSelected()>
+#@ Locks the selected unlocked LUKS device.
+
+func ActionLockSelected()
+{
+	var dev = SelectedDevice();
+
+	if iserr(dev) { return; }
+	if not IsLuks(dev) { return; }
+	if not IsLuksUnlocked(dev, mounterDevices) { return; }
+
+	if IsLuksCryptChildMounted(dev, mounterDevices)
+	{
+		MounterShowError("Cannot lock: the unlocked contents are still mounted. Unmount them first.");
+
+		return;
+	}
+
+	HandleActionResult(LockLuks(dev));
+}
+
+#@ <ActionEjectSelected()>
+#@ Confirms and performs eject / poweroff of the selected devices parent disk.
+
+func ActionEjectSelected()
+{
+	var dev = SelectedDevice();
+
+	if iserr(dev) { return; }
+
+	var devType = dev["type"];
+
+	if devType == "crypt"
+	{
+		MounterShowError("Cannot eject an unlocked volume directly. Lock it and eject the parent device.");
+
+		return;
+	}
+
+	var diskName = dev["disk"];
+
+	if diskName == "" or diskName == dev["name"]
+	{
+		MounterShowError("No parent disk found");
+
+		return;
+	}
+
+	var diskLabel = DiskShortLabel(dev);
+
+	if not IsEjectable(dev)
+	{
+		MounterShowError("Refusing to power off " + diskLabel + ": is not a removable device.");
+
+		return;
+	}
+
+	if DiskHasActiveMember(diskName, mounterDevices)
+	{
+		MounterShowError("Cannot eject " + diskLabel
+			+ ": this drive still has mounted or unlocked partitions. Unmount and lock all of them first.");
+
+		return;
+	}
+
+	var confirmed = MounterShowConfirm("Power off " + diskLabel + "?");
+
+	if not iserr(confirmed) and confirmed
+	{
+		HandleActionResult(EjectDevice(dev));
+		ClearScreen();
+	}
+}
+
+#@ <ActionShowInfoSelected()>
+#@ Opens the device info dialog for the selected device.
+
+func ActionShowInfoSelected()
+{
+	var dev = SelectedDevice();
+
+	if iserr(dev) { return; }
+
+	MounterShowDeviceInfo(dev);
+}

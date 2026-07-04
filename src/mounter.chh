@@ -1,0 +1,198 @@
+#!/usr/bin/chippy
+#
+# dfn-mounter - mounter.chh
+#
+
+#@ <MounterMainLoop()>
+#@ Mounter event loop.
+
+func MounterMainLoop()
+{
+	var running = true;
+
+	while running
+	{
+		mounterInDialog = false;
+
+		MounterUpdateScreenSize();
+
+		if mounterScreenWidth < MINTERMWIDTH or mounterScreenHeight < MINTERMHEIGHT
+		{
+			ClearScreen();
+			CursorTo(1, 1);
+			Print("Terminal too small");
+
+			getch();
+
+			MounterRefreshDevices();
+			ClearScreen();
+
+			continue;
+		}
+
+		# Viewport may have changed while getch() was blocked. Re-clamp so the
+		# selection stays visible.
+		MounterAdjustScroll();
+
+		var pageSize = GetVisibleDeviceCount();
+		var contentHeight = mounterScreenHeight - MounterBottomReserve() - 2;
+		var listWidth = mounterScreenWidth - 2;
+
+		MounterDrawHeader(2, 1, listWidth);
+		MounterDrawDeviceList(2, 2, listWidth, contentHeight);
+		MounterDrawBottom();
+
+		if not iserr(mounterWinsizeHandle)
+		{
+			send(mounterWinsizeHandle, MounterCurrentState());
+		}
+
+		var key = getch();
+
+		MounterUpdateScreenSize();
+		MounterAdjustScroll();
+
+		if key == BFKEYESC
+		{
+			var confirmed = MounterShowConfirm("Do you really want to exit?");
+
+			if not iserr(confirmed) and confirmed { running = false; }
+			else { ClearScreen(); }
+		}
+		elseif key == BFKEYENTER or key == BFKEYRIGHT
+		{
+			var dev = SelectedDevice();
+
+			if not iserr(dev)
+			{
+				if IsLuks(dev) and not IsLuksUnlocked(dev, mounterDevices)
+				{
+					ActionUnlockSelected();
+				}
+				elseif not IsMounted(dev)
+				{
+					ActionMountSelected();
+				}
+			}
+		}
+		elseif key == BFKEYLEFT
+		{
+			var dev = SelectedDevice();
+
+			if not iserr(dev)
+			{
+				if IsLuks(dev) and IsLuksUnlocked(dev, mounterDevices)
+				{
+					ActionLockSelected();
+				}
+				elseif IsMounted(dev)
+				{
+					ActionUnmountSelected();
+				}
+			}
+		}
+		elseif key == BFKEYUP
+		{
+			MoveSelection(-1);
+		}
+		elseif key == BFKEYDOWN
+		{
+			MoveSelection(1);
+		}
+		elseif key == BFKEYPAGEUP
+		{
+			MoveSelection(-pageSize);
+		}
+		elseif key == BFKEYPAGEDOWN
+		{
+			MoveSelection(pageSize);
+		}
+		elseif key == BFKEYHOME
+		{
+			if len(mounterDevices) > 0
+			{
+				mounterSelectedIndex = SnapToDevice(1, 1);
+				mounterScrollOffset = 1;
+			}
+		}
+		elseif key == BFKEYEND
+		{
+			if len(mounterDevices) > 0
+			{
+				mounterSelectedIndex = SnapToDevice(len(mounterDevices), -1);
+
+				MounterAdjustScroll();
+			}
+		}
+		elseif key == KEYR or key == KEYRR
+		{
+			MounterRefreshDevices();
+			ClearScreen();
+		}
+		elseif key == KEYE or key == KEYEE
+		{
+			ActionEjectSelected();
+		}
+		elseif key == KEYI or key == KEYII
+		{
+			ActionShowInfoSelected();
+		}
+		elseif key == KEYDOT
+		{
+			mounterShowKeybinds = not mounterShowKeybinds;
+
+			ClearScreen();
+		}
+		elseif key == KEYHASH
+		{
+			MounterShowDebug();
+		}
+	}
+}
+
+#@ <MounterInit()>
+#@ Loads the initial device list and spawns the window-resize detector actor.
+
+func MounterInit()
+{
+	MounterRefreshDevices();
+
+	mounterWinsizeHandle = actor(MounterWinChActor);
+}
+
+#@ <MounterCleanup()>
+#@ Cleanup before exit.
+
+func MounterCleanup()
+{
+	ShowCursor();
+	ClearScreen();
+}
+
+#@ <Main()>
+#@ Entry point. Resolves required binaries, loads devices, and runs the main loop.
+
+func Main()
+{
+	MounterUpdateScreenSize();
+
+	SetTitle(PROGRAMNAME);
+
+	ClearScreen();
+	HideCursor();
+
+	if not IsFile(LSBLKPATH) or not IsFile(UDISKSCTLPATH)
+	{
+		MounterShowError("dfn-mounter requires lsblk and udisksctl");
+		MounterCleanup();
+
+		return;
+	}
+
+	MounterInit();
+	MounterMainLoop();
+
+	MounterCleanup();
+}
+
+Main();

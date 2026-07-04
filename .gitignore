@@ -1,0 +1,11 @@
+# Build artifacts
+out/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
+*~

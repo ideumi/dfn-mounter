@@ -1,0 +1,129 @@
+#!/usr/bin/chippy
+#
+# dfn-mounter - constants.chh
+#
+
+# --- Program ---
+
+#@ <VERSION>
+#@ Program version string
+
+var VERSION = "1.0.0";
+
+#@ <PROGRAMNAME>
+#@ Program display name
+
+var PROGRAMNAME = "dfn-mounter";
+
+# --- UI ---
+
+#@ <DIALOGWIDTH>
+#@ Standard width for dialog boxes
+
+var DIALOGWIDTH = 65;
+
+#@ <KEYBINDSBARHEIGHT>
+#@ Height of the keybinds bar at the bottom
+
+var KEYBINDSBARHEIGHT = 3;
+
+#@ <FILEROWHEIGHT>
+#@ Height of each device entry
+
+var FILEROWHEIGHT = 2;
+
+#@ <MINTERMWIDTH>
+#@ Minimum required terminal width
+
+var MINTERMWIDTH = 95;
+
+#@ <MINTERMHEIGHT>
+#@ Minimum required terminal height
+
+var MINTERMHEIGHT = 15;
+
+# --- Device resolution ---
+
+#@ <MAXPARENTDEPTH>
+#@ Max parent hops to resolve root disk
+
+var MAXPARENTDEPTH = 10;
+
+# --- External tools ---
+
+#@ <LSBLKPATH>
+#@ Path to lsblk
+
+var LSBLKPATH = "/usr/bin/lsblk";
+
+#@ <UDISKSCTLPATH>
+#@ Path to udisksctl
+
+var UDISKSCTLPATH = "/usr/bin/udisksctl";
+
+#@ <LSBLKCOLUMNS>
+#@ Columns for lsblk -Pno
+
+var LSBLKCOLUMNS = "NAME,KNAME,SIZE,TYPE,FSTYPE,LABEL,UUID,MOUNTPOINT,MODEL,SERIAL,PKNAME,RM,TRAN";
+
+#@ <TTYREDIRECT>
+#@ TTY redirect suffix
+
+var TTYREDIRECT = " < /dev/tty > /dev/tty 2>&1";
+
+#@ <SWAPMOUNTPOINT>
+#@ Mount points for swap partitions get reported as this by lsblk
+#@ MOUNTPOINT="[SWAP]"
+
+var SWAPMOUNTPOINT = "[SWAP]";
+
+# --- Colors ---
+
+#@ <DFNCOLORDIM>
+#@ 256-color greyscale color
+
+var DFNCOLORDIM = 240;
+
+# --- Keys ---
+
+#@ <KEYDOT>
+#@ '.' key
+
+var KEYDOT = b[46];
+
+#@ <KEYE>
+#@ 'e' key
+
+var KEYE = b[101];
+
+#@ <KEYEE>
+#@ 'E' key
+
+var KEYEE = b[69];
+
+#@ <KEYI>
+#@ 'i' key
+
+var KEYI = b[105];
+
+#@ <KEYII>
+#@ 'I' key
+
+var KEYII = b[73];
+
+#@ <KEYR>
+#@ 'r' key
+
+var KEYR = b[114];
+
+#@ <KEYRR>
+#@ 'R' key
+
+var KEYRR = b[82];
+
+#@ <KEYHASH>
+#@ '#' key
+var KEYHASH = b[35];
+
+#@ <EGG>
+#@ The distinct lack of ''EGG'' disturbs you

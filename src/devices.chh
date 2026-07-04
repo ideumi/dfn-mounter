@@ -1,0 +1,663 @@
+#!/usr/bin/chippy
+#
+# dfn-mounter - devices.chh
+#
+
+#@ <ShellEscape(s)>
+#@ Escapes a string for safe use in shell commands.
+
+func ShellEscape(s)
+{
+	var escaped = replace(s, "'", "'\\''");
+
+	return "'" + escaped + "'";
+}
+
+#@ <ParsePairValue(line, key)>
+#@ Extracts the value of ''key'' out of a KEY="value" ''line'' from lsblk -P.
+
+func ParsePairValue(line, key)
+{
+	var search = key + "=\"";
+	var idx = indexof(line, search);
+
+	if iserr(idx) { return ""; }
+
+	var start = idx + len(search);
+	var lineLen = len(line);
+
+	# Find closing quote and skip \" escapes
+	var i = start;
+	var endPos = -1;
+
+	while i <= lineLen
+	{
+		var ch = slice(line, i, i);
+
+		if ch == "\\" and i < lineLen
+		{
+			# Skip escaped char
+			i = i + 2;
+
+			continue;
+		}
+
+		if ch == "\""
+		{
+			endPos = i;
+
+			break;
+		}
+
+		i = i + 1;
+	}
+
+	if endPos < 0 { return ""; }
+	if endPos == start { return ""; }
+
+	var raw = slice(line, start, endPos - 1);
+
+	# Unescape \\ and \"
+	raw = replace(raw, "\\\"", "\"");
+	raw = replace(raw, "\\\\", "\\");
+
+	return raw;
+}
+
+#@ <ResolveDisk(name, parentMap)>
+#@ Walks the ''parentMap'' chain to find the root disk device name.
+
+func ResolveDisk(name, parentMap)
+{
+	var current = name;
+
+	for i = 1 to MAXPARENTDEPTH
+	{
+		var parent = parentMap[current];
+
+		if iserr(parent) or parent == "" { return current; }
+
+		current = parent;
+	}
+
+	return current;
+}
+
+#@ <LoadDevices()>
+#@ Loads block devices from lsblk. Returns a list of device maps, or an empty list
+#@ on failure.
+#@
+#@ Map fields:
+#@ - ''"name"'' (String): device name, e.g. ''sda1'' or ''nvme0n1p3_crypt''
+#@ - ''"size"'' (String): human-readable size, e.g. ''8G''
+#@ - ''"type"'' (String): device type, one of ''part'', ''crypt'', ''lvm''
+#@ - ''"fstype"'' (String): filesystem type, e.g. ''ext4'' or ''crypto_LUKS''
+#@ - ''"label"'' (String): filesystem label
+#@ - ''"uuid"'' (String): filesystem UUID
+#@ - ''"mountpoint"'' (String): current mountpoint, or ''[SWAP]''
+#@ - ''"model"'' (String): parent disk model
+#@ - ''"serial"'' (String): parent disk serial number
+#@ - ''"pkname"'' (String): kernel name of the immediate parent device
+#@ - ''"parent"'' (String): resolved name of the immediate parent device
+#@ - ''"disk"'' (String): resolved root disk name from walking the parent chain
+#@ - ''"removable"'' (Bool): whether the parent disk is removable
+#@ - ''"transport"'' (String): parent disk transport, e.g. ''usb'' or ''nvme''
+
+func LoadDevices()
+{
+	var output = RunCapture(LSBLKPATH + " -Pno " + LSBLKCOLUMNS + " 2>/dev/null");
+
+	if iserr(output) { return []; }
+
+	var lines = split(output, "\n");
+
+	# Map kernel names (dm-0) to readable names (nvme0n1p3_crypt) so PKNAME parent
+	# references can be resolved back to those readable names
+	var knameToName = m[];
+
+	for i = 1 to len(lines)
+	{
+		var line = Trim(lines[i]);
+
+		if line == "" { continue; }
+
+		var name = ParsePairValue(line, "NAME");
+		var kname = ParsePairValue(line, "KNAME");
+
+		if kname != "" { knameToName[kname] = name; }
+	}
+
+	# Disk attributes
+	var diskAttrs = m[];
+
+	# Child to parent map
+	var parentMap = m[];
+
+	for i = 1 to len(lines)
+	{
+		var line = Trim(lines[i]);
+
+		if line == "" { continue; }
+
+		var name = ParsePairValue(line, "NAME");
+		var pkname = ParsePairValue(line, "PKNAME");
+		var devType = ParsePairValue(line, "TYPE");
+
+		if pkname != ""
+		{
+			var resolvedParent = knameToName[pkname];
+
+			if iserr(resolvedParent) { resolvedParent = pkname; }
+
+			parentMap[name] = resolvedParent;
+		}
+
+		if devType == "disk"
+		{
+			diskAttrs[name] = m[
+				"model": ParsePairValue(line, "MODEL"),
+				"serial": ParsePairValue(line, "SERIAL"),
+				"removable": ParsePairValue(line, "RM") == "1",
+				"transport": ParsePairValue(line, "TRAN")
+			];
+		}
+	}
+
+	var devices = [];
+
+	for i = 1 to len(lines)
+	{
+		var line = Trim(lines[i]);
+
+		if line == "" { continue; }
+
+		var devType = ParsePairValue(line, "TYPE");
+
+		if devType != "part" and devType != "crypt" and devType != "lvm"
+		{
+			continue;
+		}
+
+		var name = ParsePairValue(line, "NAME");
+		var size = ParsePairValue(line, "SIZE");
+		var fstype = ParsePairValue(line, "FSTYPE");
+		var label = ParsePairValue(line, "LABEL");
+		var uuid = ParsePairValue(line, "UUID");
+		var mountpoint = ParsePairValue(line, "MOUNTPOINT");
+		var pkname = ParsePairValue(line, "PKNAME");
+
+		var parent = parentMap[name];
+
+		if iserr(parent) { parent = ""; }
+
+		# Resolve parent-disk attributes
+		var disk = ResolveDisk(name, parentMap);
+		var model = "";
+		var serial = "";
+		var removable = false;
+		var transport = "";
+
+		var attrs = diskAttrs[disk];
+
+		if not iserr(attrs)
+		{
+			model = attrs["model"];
+			serial = attrs["serial"];
+			removable = attrs["removable"];
+			transport = attrs["transport"];
+		}
+
+		var dev = m[
+			"name": name,
+			"size": size,
+			"type": devType,
+			"fstype": fstype,
+			"label": label,
+			"uuid": uuid,
+			"mountpoint": mountpoint,
+			"model": model,
+			"serial": serial,
+			"pkname": pkname,
+			"parent": parent,
+			"disk": disk,
+			"removable": removable,
+			"transport": transport
+		];
+
+		append(devices, dev);
+	}
+
+	return devices;
+}
+
+#@ <IsDeviceEntry(entry)>
+#@ Returns ''true'' if the ''entry'' is a real device and not a section header.
+
+func IsDeviceEntry(entry)
+{
+	var t = entry["type"];
+
+	if iserr(t) { return false; }
+
+	return t != "section";
+}
+
+#@ <SectionizedDevices(devices)>
+#@ Groups ''devices'' into Removable / Devices / System and inserts section header
+#@ entries.
+
+func SectionizedDevices(devices)
+{
+	var systemDisk = "";
+
+	for i = 1 to len(devices)
+	{
+		var d = devices[i];
+
+		if d["mountpoint"] == "/"
+		{
+			systemDisk = d["disk"];
+
+			break;
+		}
+	}
+
+	var removable = [];
+	var internal = [];
+	var system = [];
+
+	for i = 1 to len(devices)
+	{
+		var d = devices[i];
+
+		# Check system before removable so a live-USB boot drive lands in the
+		# System section instead of Removable.
+
+		if systemDisk != "" and d["disk"] == systemDisk { append(system, d); }
+		elseif IsEjectable(d) { append(removable, d); }
+		else { append(internal, d); }
+	}
+
+	var removableHeader = m[
+		"type": "section",
+		"label": "Removable"
+	];
+
+	var devicesHeader = m[
+		"type": "section",
+		"label": "Devices"
+	];
+
+	var result = [removableHeader] + removable + [devicesHeader] + internal;
+
+	if systemDisk != ""
+	{
+		var systemHeader = m[
+			"type": "section",
+			"label": "System"
+		];
+
+		result = result + [systemHeader] + system;
+	}
+
+	return result;
+}
+
+#@ <IsLuks(dev)>
+#@ Returns ''true'' if the ''dev''ice has a LUKS filesystem type.
+
+func IsLuks(dev)
+{
+	return dev["fstype"] == "crypto_LUKS";
+}
+
+#@ <IsLuksUnlocked(dev, devices)>
+#@ Returns ''true'' if a LUKS ''dev''ice has an unlocked crypt child in the device
+#@ list.
+
+func IsLuksUnlocked(dev, devices)
+{
+	if not IsLuks(dev) { return false; }
+
+	var name = dev["name"];
+
+	for i = 1 to len(devices)
+	{
+		var other = devices[i];
+
+		if other["type"] == "crypt"
+		{
+			if other["parent"] == name { return true; }
+		}
+	}
+
+	return false;
+}
+
+#@ <IsSwap(dev)>
+#@ Returns ''true'' if the ''dev''ice is an active swap area.
+
+func IsSwap(dev)
+{
+	return dev["mountpoint"] == SWAPMOUNTPOINT;
+}
+
+#@ <IsMounted(dev)>
+#@ Returns ''true'' if the ''dev''ice is mounted at a real path. Active swap is
+#@ deliberately excluded.
+
+func IsMounted(dev)
+{
+	if IsSwap(dev) { return false; }
+
+	return dev["mountpoint"] != "";
+}
+
+#@ <IsMountable(dev)>
+#@ Returns ''true'' if the ''dev''ice is a plausible mount target for udisksctl.
+
+func IsMountable(dev)
+{
+	# LUKS containers must be unlocked first
+	if IsLuks(dev) { return false; }
+
+	# Swap is mounted by the kernel
+	if IsSwap(dev) { return false; }
+
+	var fstype = dev["fstype"];
+
+	# Empty or LVM2_member fstypes have no mountable filesystem.
+	if fstype == "" { return false; }
+	if fstype == "LVM2_member" { return false; }
+
+	return true;
+}
+
+#@ <IsLuksCryptChildMounted(dev, devices)>
+#@ Returns ''true'' if the unlocked LUKS ''dev''ice has a crypt child that is currently
+#@ mounted.
+
+func IsLuksCryptChildMounted(dev, devices)
+{
+	var name = dev["name"];
+
+	for i = 1 to len(devices)
+	{
+		var other = devices[i];
+
+		if other["type"] == "crypt" and other["parent"] == name and IsMounted(other)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+#@ <DeviceStatusText(dev, devices)>
+#@ Returns the status string used in the STATUS column and the device info dialog.
+
+func DeviceStatusText(dev, devices)
+{
+	if IsLuks(dev)
+	{
+		if IsLuksUnlocked(dev, devices) { return "[LUKS unlocked]"; }
+
+		return "[LUKS locked]";
+	}
+
+	if IsSwap(dev) { return "[swap]"; }
+
+	if IsMounted(dev) { return dev["mountpoint"]; }
+
+	if dev["fstype"] == "LVM2_member" { return "[LVM]"; }
+
+	return "[unmounted]";
+}
+
+#@ <DiskHasActiveMember(diskName, devices)>
+#@ Returns ''true'' if any device on the given parent disk is mounted, in active
+#@ use as swap, or has an unlocked LUKS child.
+
+func DiskHasActiveMember(diskName, devices)
+{
+	for i = 1 to len(devices)
+	{
+		var d = devices[i];
+
+		if not IsDeviceEntry(d) { continue; }
+		if d["disk"] != diskName { continue; }
+
+		if IsMounted(d) { return true; }
+		if IsSwap(d) { return true; }
+		if IsLuks(d) and IsLuksUnlocked(d, devices) { return true; }
+	}
+
+	return false;
+}
+
+#@ <DevicePath(dev)>
+#@ Returns the /dev/ path for a ''dev''ice.
+
+func DevicePath(dev)
+{
+	var name = dev["name"];
+	var devType = dev["type"];
+
+	# crypt and lvm devices resolve under /dev/mapper/ since they are device mapper
+	# nodes
+	if devType == "crypt" or devType == "lvm" { return "/dev/mapper/" + name; }
+
+	return "/dev/" + name;
+}
+
+#@ <SerialTail(serial)>
+#@ Returns the last 6 characters of the ''serial'' number, prefixed with "...".
+#@ Returns the whole serial if it is 6 characters or shorter.
+
+func SerialTail(serial)
+{
+	if serial == "" { return ""; }
+
+	var serialLen = len(serial);
+
+	if serialLen <= 6 { return serial; }
+
+	return "..." + Right(serial, 6);
+}
+
+#@ <DiskShortLabel(dev)>
+#@ Returns a label for the parent disk: ''"<model> (...SerialTail(serial))"'' when
+#@ both are available, otherwise the disk name path.
+
+func DiskShortLabel(dev)
+{
+	var model = dev["model"];
+	var serial = dev["serial"];
+	var disk = dev["disk"];
+
+	var label = "";
+
+	if model != "" { label = model; }
+	else { label = "/dev/" + disk; }
+
+	var tail = SerialTail(serial);
+
+	if tail != "" { label = label + " (" + tail + ")"; }
+
+	return label;
+}
+
+#@ <DeviceTypeDescription(dev)>
+#@ Returns a description of a ''dev''ice's role.
+
+func DeviceTypeDescription(dev)
+{
+	var devType = dev["type"];
+	var fstype = dev["fstype"];
+
+	if devType == "part" and fstype == "crypto_LUKS"
+	{
+		return "LUKS container";
+	}
+	if devType == "part" { return "Partition"; }
+	if devType == "crypt" and fstype == "LVM2_member"
+	{
+		return "LUKS volume (LVM PV)";
+	}
+	if devType == "crypt" { return "LUKS volume"; }
+	if devType == "lvm" { return "LVM logical volume"; }
+
+	return devType;
+}
+
+#@ <DeviceDisplayName(dev)>
+#@ Returns the display name for a ''dev''ice.
+
+func DeviceDisplayName(dev)
+{
+	var label = dev["label"];
+	var model = dev["model"];
+	var name = dev["name"];
+	var size = dev["size"];
+	var serial = dev["serial"];
+
+	var tailPart = "";
+
+	# Last 3 chars of serial
+	if serial != ""
+	{
+		var serialLen = len(serial);
+		var tail = serial;
+
+		if serialLen > 3 { tail = Right(serial, 3); }
+
+		tailPart = " [" + tail + "]";
+	}
+
+	# No label?
+	if label != "" { return label + tailPart + " (" + name + ")"; }
+
+	# Fall back to model + size
+	if model != "" { return size + " " + model + tailPart + " (" + name + ")"; }
+
+	# Fall back to name + size
+	return name + tailPart + " (" + size + ")";
+}
+
+#@ <RunWithError(command)>
+#@ Runs ''command''. Returns ''ok'' on success, the captured stdout+stderr on
+#@ failure, or ''err'' if the subprocess could not be started.
+
+func RunWithError(command)
+{
+	var result = Run(command + " 2>&1");
+
+	if iserr(result) { return err; }
+
+	var exitcode = result[1];
+	var output = Trim(result[2]);
+
+	if not iserr(exitcode) and exitcode == 0 { return ok; }
+
+	if output != "" { return output; }
+
+	if iserr(exitcode) { return "Command failed"; }
+
+	return "Command failed (exit " + str(exitcode) + ")";
+}
+
+#@ <UdisksAction(dev, action)>
+#@ Runs a udisksctl ''action'' on ''dev''ice by path. Returns ''ok'' on success,
+#@ an error message string on failure, or ''err'' if udisksctl could not start.
+
+func UdisksAction(dev, action)
+{
+	var path = DevicePath(dev);
+
+	return RunWithError(UDISKSCTLPATH + " " + action + " -b " + ShellEscape(path));
+}
+
+#@ <MountDevice(dev)>
+#@ Mounts a ''dev''ice using udisksctl. Returns ''ok'' or error message string.
+
+func MountDevice(dev)
+{
+	return UdisksAction(dev, "mount");
+}
+
+#@ <UnmountDevice(dev)>
+#@ Unmounts a ''dev''ice using udisksctl. Returns ''ok'' or error message string.
+
+func UnmountDevice(dev)
+{
+	return UdisksAction(dev, "unmount");
+}
+
+#@ <UnlockLuks(dev)>
+#@ Unlocks a LUKS ''dev''ice using udisksctl. This temporarily exits the TUI to
+#@ let udisksctl handle passphrase input itself, so we can't capture anything and
+#@ everything gets moved around safely with no leaks.
+
+func UnlockLuks(dev)
+{
+	EnterMounterDialog();
+
+	var path = DevicePath(dev);
+
+	ShowCursor();
+	ClearScreen();
+	CursorTo(1, 1);
+
+	Println("Unlocking " + DeviceDisplayName(dev) + ":");
+
+	var cmd = UDISKSCTLPATH + " unlock -b " + ShellEscape(path) + TTYREDIRECT;
+
+	var success = isok(RunCheck(cmd));
+
+	if not success
+	{
+		Println("");
+		Print("Unlock failed. Press any key to continue.");
+
+		getch();
+	}
+
+	HideCursor();
+	ClearScreen();
+	ExitMounterDialog();
+
+	if success { return ok; }
+
+	return err;
+}
+
+#@ <LockLuks(dev)>
+#@ Locks a LUKS ''dev''ice using udisksctl. Returns ''ok'' or error message string.
+
+func LockLuks(dev)
+{
+	return UdisksAction(dev, "lock");
+}
+
+#@ <EjectDevice(dev)>
+#@ Ejects a ''dev''ice by powering off its parent disk. Returns ''ok'' or error message
+#@ string.
+
+func EjectDevice(dev)
+{
+	var disk = dev["disk"];
+
+	return RunWithError(UDISKSCTLPATH + " power-off -b " + ShellEscape("/dev/" + disk));
+}
+
+#@ <IsEjectable(dev)>
+#@ Returns ''true'' if the ''dev''ice's parent disk is safe to power off.
+
+func IsEjectable(dev)
+{
+	if dev["transport"] == "usb" { return true; }
+	if dev["removable"] { return true; }
+
+	return false;
+}

@@ -1,0 +1,9 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=dfn-mounter
+Comment=Terminal disk mounter
+Exec=kitty -e dfn-mounter
+Icon=drive-harddisk
+Terminal=false
+Type=Application
+Categories=System;HardwareSettings;

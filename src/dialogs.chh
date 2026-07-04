@@ -1,0 +1,168 @@
+#!/usr/bin/chippy
+#
+# dfn-mounter - dialogs.chh
+#
+
+#@ <GetMounterRegion(screenWidth, screenHeight)>
+#@ Returns the mounter region: ''[x, y, width, height]''.
+
+func GetMounterRegion(screenWidth, screenHeight)
+{
+	var x = 1;
+	var y = 1;
+	var width = screenWidth;
+	var height = screenHeight - MounterBottomReserve();
+
+	return [x, y, width, height];
+}
+
+#@ <MounterShowDebug()>
+#@ Renders a small debug dialog where versions can be checked.
+
+func MounterShowDebug()
+{
+	EnterMounterDialog();
+
+	BFShowMessage(GetMounterRegion(mounterScreenWidth, mounterScreenHeight),
+		DIALOGWIDTH,
+		"Debug",
+		"This is " + PROGRAMNAME + " V-" + VERSION + "\nusing boxflinger V-" +
+		BFVERSION + "\n\nCopyright (c) 2026 ideumi", COLORRESET);
+
+	HideCursor();
+	ExitMounterDialog();
+}
+
+#@ <MounterShowConfirm(message)>
+#@ Shows a centered confirmation dialog on the full screen.
+
+func MounterShowConfirm(message)
+{
+	EnterMounterDialog();
+
+	var region = GetMounterRegion(mounterScreenWidth, mounterScreenHeight);
+
+	var result = BFShowConfirm(region, DIALOGWIDTH, "Confirm", message, true);
+
+	HideCursor();
+	ExitMounterDialog();
+
+	return result;
+}
+
+#@ <MounterShowDeviceInfo(dev)>
+#@ Shows a centered info dialog with all relevant metadata for ''dev''ice.
+
+func MounterShowDeviceInfo(dev)
+{
+	EnterMounterDialog();
+
+	var width = DIALOGWIDTH;
+	var height = 14;
+	var labelWidth = 9;
+
+	var region = GetMounterRegion(mounterScreenWidth, mounterScreenHeight);
+	var origin = BFCenterRect(region, width, height);
+	var x = origin[1];
+	var y = origin[2];
+
+	BFClearRegion(x, y, width, height);
+	BFDrawFrame(x, y, width, height, "Device Info", BFBOXROUNDED);
+
+	var contentX = x + 2;
+	var contentWidth = width - 4;
+	var valueWidth = contentWidth - labelWidth;
+	var row = y + 1;
+
+	# Name
+	BFDrawText(contentX, row, BFPadText("Name:", labelWidth, BFALIGNLEFT) + BFClipText(DeviceDisplayName(dev), valueWidth));
+	row = row + 1;
+
+	# Path
+	BFDrawText(contentX, row, BFPadText("Path:", labelWidth, BFALIGNLEFT) + BFClipText(DevicePath(dev), valueWidth));
+	row = row + 1;
+
+	# Type
+	BFDrawText(contentX, row, BFPadText("Type:", labelWidth, BFALIGNLEFT) + BFClipText(DeviceTypeDescription(dev), valueWidth));
+	row = row + 1;
+
+	# Filesystem
+	var fstype = dev["fstype"];
+
+	if fstype == "" { fstype = "(none)"; }
+
+	BFDrawText(contentX, row, BFPadText("FS:", labelWidth, BFALIGNLEFT) + BFClipText(fstype, valueWidth));
+	row = row + 1;
+
+	# Size
+	BFDrawText(contentX, row, BFPadText("Size:", labelWidth, BFALIGNLEFT) + dev["size"]);
+	row = row + 1;
+
+	# Label
+	var label = dev["label"];
+
+	if label == "" { label = "(none)"; }
+
+	BFDrawText(contentX, row, BFPadText("Label:", labelWidth, BFALIGNLEFT) + BFClipText(label, valueWidth));
+	row = row + 1;
+
+	# UUID
+	var uuid = dev["uuid"];
+
+	if uuid == "" { uuid = "(none)"; }
+
+	BFDrawText(contentX, row, BFPadText("UUID:", labelWidth, BFALIGNLEFT) + BFClipText(uuid, valueWidth));
+	row = row + 1;
+
+	# Status
+	BFDrawText(contentX, row, BFPadText("Status:", labelWidth, BFALIGNLEFT) + BFClipText(DeviceStatusText(dev, mounterDevices), valueWidth));
+	row = row + 1;
+
+	# Drive
+	var driveStr = dev["model"];
+
+	if driveStr == "" { driveStr = "/dev/" + dev["disk"]; }
+
+	var tagList = [];
+
+	if dev["transport"] != "" { append(tagList, dev["transport"]); }
+	if dev["removable"] { append(tagList, "removable"); }
+
+	if len(tagList) > 0
+	{
+		driveStr = driveStr + " [" + join(tagList, ", ") + "]";
+	}
+
+	BFDrawText(contentX, row, BFPadText("Drive:", labelWidth, BFALIGNLEFT) + BFClipText(driveStr, valueWidth));
+	row = row + 1;
+
+	# Serial
+	var serial = dev["serial"];
+
+	if serial == "" { serial = "(unknown)"; }
+
+	BFDrawText(contentX, row, BFPadText("Serial:", labelWidth, BFALIGNLEFT) + BFClipText(serial, valueWidth));
+	row = row + 2;
+
+	BFDrawText(contentX, row, "Press any key...");
+
+	getch();
+
+	HideCursor();
+	ExitMounterDialog();
+}
+
+#@ <MounterShowError(message)>
+#@ Shows a centered error dialog on the full screen.
+
+func MounterShowError(message)
+{
+	EnterMounterDialog();
+
+	var region = GetMounterRegion(mounterScreenWidth, mounterScreenHeight);
+
+	BFShowMessage(region, DIALOGWIDTH, "Error", message, COLORRED);
+
+	HideCursor();
+	ExitMounterDialog();
+}

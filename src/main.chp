@@ -1,0 +1,24 @@
+#!/usr/bin/chippy
+#
+# dfn-mounter - main.chp
+#
+
+load("libboxflinger.chh");
+
+load("libterm.chh");
+load("libhandles.chh");
+load("libstat.chh");
+load("libstrings.chh");
+load("libsubprocess.chh");
+load("libprint.chh");
+load("libsignals.chh");
+
+# ---
+
+load("constants.chh");
+load("state.chh");
+load("devices.chh");
+load("ui.chh");
+load("dialogs.chh");
+load("actions.chh");
+load("mounter.chh");

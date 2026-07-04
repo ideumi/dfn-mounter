@@ -1,0 +1,2764 @@
+#!/usr/bin/chippy
+#
+# boxflinger V-1.0.11
+#
+
+# Copyright (c) 2025-2026 ideumi
+#
+# Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# ---
+#
+# Anything in media/ as well as demo/bftest/media/ is explicitly: Copyright (c) 2025 - 2026 ideumi
+# and not subject to the above licence.
+
+#
+# boxflinger - constants.chh
+#
+
+#@ <BFVERSION>
+#@ (2026-06-19)
+#@ Library version
+
+var BFVERSION = "1.0.11";
+
+#@ <BFALIGNLEFT>
+#@ (2025-09-28)
+#@ Left text alignment
+
+var BFALIGNLEFT = 0;
+
+#@ <BFALIGNCENTER>
+#@ (2025-09-28)
+#@ Center text alignment
+
+var BFALIGNCENTER = 1;
+
+#@ <BFALIGNRIGHT>
+#@ (2025-09-28)
+#@ Right text alignment
+
+var BFALIGNRIGHT = 2;
+
+#@ <BFPAGEITEMS>
+#@ (2026-06-02)
+#@ Number of items to jump when PageUp/PageDown is pressed in non-scrollable
+#@ list widgets
+
+var BFPAGEITEMS = 5;
+
+# ---
+
+#@ <BFPACKEDSPACE>
+#@ (2025-09-28)
+#@ Space character
+
+var BFPACKEDSPACE = pack(" ");
+
+#@ <BFPACKEDBLOCK>
+#@ (2025-09-28)
+#@ Full block character
+
+var BFPACKEDBLOCK = pack("█");
+
+#@ <BFPACKEDDOT>
+#@ (2025-09-28)
+#@ Bullet point character
+
+var BFPACKEDDOT = pack("●");
+
+# ---
+
+#@ <BFBOXSINGLE>
+#@ (2025-09-28)
+#@ Single-line box border style
+
+var BFBOXSINGLE = 1;
+
+var BFPACKEDSINGLETL = pack("┌");
+var BFPACKEDSINGLETR = pack("┐");
+var BFPACKEDSINGLEBL = pack("└");
+var BFPACKEDSINGLEBR = pack("┘");
+var BFPACKEDSINGLEH = pack("─");
+var BFPACKEDSINGLEV = pack("│");
+
+#@ <BFBOXDOUBLE>
+#@ (2025-09-28)
+#@ Double-line box border style
+
+var BFBOXDOUBLE = 2;
+
+var BFPACKEDDOUBLETL = pack("╔");
+var BFPACKEDDOUBLETR = pack("╗");
+var BFPACKEDDOUBLEBL = pack("╚");
+var BFPACKEDDOUBLEBR = pack("╝");
+var BFPACKEDDOUBLEH = pack("═");
+var BFPACKEDDOUBLEV = pack("║");
+
+#@ <BFBOXROUNDED>
+#@ (2025-09-28)
+#@ Rounded corner box border style
+
+var BFBOXROUNDED = 3;
+
+var BFPACKEDROUNDEDTL = pack("╭");
+var BFPACKEDROUNDEDTR = pack("╮");
+var BFPACKEDROUNDEDBL = pack("╰");
+var BFPACKEDROUNDEDBR = pack("╯");
+
+#@ <BFPACKEDBRACKETLEFT>
+#@ (2025-09-30)
+#@ Left bracket character for slider visualization
+
+var BFPACKEDBRACKETLEFT = pack("[");
+
+#@ <BFPACKEDBRACKETRIGHT>
+#@ (2025-09-30)
+#@ Right bracket character for slider visualization
+
+var BFPACKEDBRACKETRIGHT = pack("]");
+
+#@ <BFPACKEDEQUALS>
+#@ (2025-09-30)
+#@ Filled portion character in slider bar
+
+var BFPACKEDEQUALS = pack("=");
+
+#@ <BFPACKEDDASH>
+#@ (2025-09-30)
+#@ Empty portion character in slider bar
+
+var BFPACKEDDASH = pack("-");
+
+#@ <BFAPC>
+#@ (2026-04-05)
+#@ APC start sequence
+
+var BFAPC = b[27, 95];
+
+#@ <BFST>
+#@ (2026-04-05)
+#@ String terminator
+
+var BFST = b[27, 92];
+
+#@ <BFCELLQUERY>
+#@ (2026-04-05)
+#@ Cell pixel size query sequence (CSI + BFCELLQUERY)
+
+var BFCELLQUERY = b[49, 54, 116];
+
+#@ <BFISKITTY>
+#@ (2026-04-05)
+#@ ''true'' if running inside a kitty terminal, ''false'' otherwise
+
+var BFISKITTY = getenv("TERM") == "xterm-kitty";
+
+#
+# boxflinger - keys.chh
+#
+
+#@ <BFKEYBACKSPACE>
+#@ (2025-09-28)
+#@ Backspace key
+
+var BFKEYBACKSPACE = b[127];
+
+#@ <BFKEYENTER>
+#@ (2025-09-28)
+#@ Enter/Return key
+
+var BFKEYENTER = b[13];
+
+#@ <BFKEYESC>
+#@ (2025-09-28)
+#@ Escape key
+
+var BFKEYESC = b[27];
+
+#@ <BFKEYTAB>
+#@ (2025-09-28)
+#@ Tab key
+
+var BFKEYTAB = b[9];
+
+#@ <BFKEYUP>
+#@ (2025-09-28)
+#@ Up arrow key
+
+var BFKEYUP = b[27, 91, 65];
+
+#@ <BFKEYDOWN>
+#@ (2025-09-28)
+#@ Down arrow key
+
+var BFKEYDOWN = b[27, 91, 66];
+
+#@ <BFKEYRIGHT>
+#@ (2025-09-28)
+#@ Right arrow key
+
+var BFKEYRIGHT = b[27, 91, 67];
+
+#@ <BFKEYLEFT>
+#@ (2025-09-28)
+#@ Left arrow key
+
+var BFKEYLEFT = b[27, 91, 68];
+
+#@ <BFKEYHOME>
+#@ (2025-09-28)
+#@ Home key
+
+var BFKEYHOME = b[27, 91, 72];
+
+#@ <BFKEYEND>
+#@ (2025-09-28)
+#@ End key
+
+var BFKEYEND = b[27, 91, 70];
+
+#@ <BFKEYDELETE>
+#@ (2025-09-28)
+#@ Delete key
+
+var BFKEYDELETE = b[27, 91, 51, 126];
+
+#@ <BFKEYPAGEUP>
+#@ (2025-09-28)
+#@ Page Up key
+
+var BFKEYPAGEUP = b[27, 91, 53, 126];
+
+#@ <BFKEYPAGEDOWN>
+#@ (2025-09-28)
+#@ Page Down key
+
+var BFKEYPAGEDOWN = b[27, 91, 54, 126];
+
+#@ <BFKEYCTRLHOME>
+#@ (2025-09-28)
+#@ Ctrl+Home key combination
+
+var BFKEYCTRLHOME = b[27, 91, 49, 59, 53, 72];
+
+#@ <BFKEYCTRLEND>
+#@ (2025-09-28)
+#@ Ctrl+End key combination
+
+var BFKEYCTRLEND = b[27, 91, 49, 59, 53, 70];
+
+#@ <BFKEYCTRLUP>
+#@ (2026-05-04)
+#@ Ctrl+Up arrow key combination
+
+var BFKEYCTRLUP = b[27, 91, 49, 59, 53, 65];
+
+#@ <BFKEYCTRLDOWN>
+#@ (2026-05-04)
+#@ Ctrl+Down arrow key combination
+
+var BFKEYCTRLDOWN = b[27, 91, 49, 59, 53, 66];
+
+#@ <BFKEYCTRLRIGHT>
+#@ (2026-05-04)
+#@ Ctrl+Right arrow key combination
+
+var BFKEYCTRLRIGHT = b[27, 91, 49, 59, 53, 67];
+
+#@ <BFKEYCTRLLEFT>
+#@ (2026-05-04)
+#@ Ctrl+Left arrow key combination
+
+var BFKEYCTRLLEFT = b[27, 91, 49, 59, 53, 68];
+
+#@ <BFKEYCTRLD>
+#@ (2026-02-02)
+#@ Ctrl+D key combination
+
+var BFKEYCTRLD = b[4];
+
+#@ <BFKEYCTRLU>
+#@ (2026-02-02)
+#@ Ctrl+U key combination
+
+var BFKEYCTRLU = b[21];
+
+#
+# boxflinger - drawing.chh
+#
+
+#@ <BFDrawText(x, y, text)>
+#@ V-1.0.1 (2025-11-03)
+#@
+#@ Draws ''text'' at specified screen coordinates ''x'' and ''y''. Text is drawn
+#@ immediately at current terminal attributes and does not clear previous content
+#@ at position.
+
+func BFDrawText(x, y, text)
+{
+	CursorToXY(x, y);
+
+	fwrite(pack(str(text)), STDOUT);
+}
+
+#@ <BFDrawBox(x, y, width, height, style)>
+#@ V-1.0.1 (2025-11-03)
+#@
+#@ Draws a box border using Unicode box-drawing characters at position ''x'' and
+#@ ''y'' with dimensions ''width'' and ''height'' (minimum 2x2). The ''style''
+#@ can be ''BFBOXSINGLE'', ''BFBOXDOUBLE'', or ''BFBOXROUNDED''. Only draws
+#@ border, does not clear interior. Returns ''err'' if width or height less than
+#@ 2, or invalid style.
+
+func BFDrawBox(x, y, width, height, style)
+{
+	if width < 2 or height < 2 { return err; }
+
+	var topLeft = null;
+	var topRight = null;
+
+	var bottomLeft = null;
+	var bottomRight = null;
+
+	var horizontal = null;
+	var vertical = null;
+
+	if style == BFBOXSINGLE
+	{
+		topLeft = BFPACKEDSINGLETL;
+		topRight = BFPACKEDSINGLETR;
+
+		bottomLeft = BFPACKEDSINGLEBL;
+		bottomRight = BFPACKEDSINGLEBR;
+
+		horizontal = BFPACKEDSINGLEH;
+		vertical = BFPACKEDSINGLEV;
+	}
+	elseif style == BFBOXDOUBLE
+	{
+		topLeft = BFPACKEDDOUBLETL;
+		topRight = BFPACKEDDOUBLETR;
+
+		bottomLeft = BFPACKEDDOUBLEBL;
+		bottomRight = BFPACKEDDOUBLEBR;
+
+		horizontal = BFPACKEDDOUBLEH;
+		vertical = BFPACKEDDOUBLEV;
+	}
+	elseif style == BFBOXROUNDED
+	{
+		topLeft = BFPACKEDROUNDEDTL;
+		topRight = BFPACKEDROUNDEDTR;
+
+		bottomLeft = BFPACKEDROUNDEDBL;
+		bottomRight = BFPACKEDROUNDEDBR;
+
+		horizontal = BFPACKEDSINGLEH;
+		vertical = BFPACKEDSINGLEV;
+	}
+	else
+	{
+		return err;
+	}
+
+	CursorToXY(x, y);
+
+	fwrite(topLeft, STDOUT);
+
+	for i = 1 to width - 2 { fwrite(horizontal, STDOUT); }
+
+	fwrite(topRight, STDOUT);
+
+	for i = 1 to height - 2
+	{
+		CursorToXY(x, y + i);
+		fwrite(vertical, STDOUT);
+
+		CursorToXY(x + width - 1, y + i);
+		fwrite(vertical, STDOUT);
+	}
+
+	CursorToXY(x, y + height - 1);
+
+	fwrite(bottomLeft, STDOUT);
+
+	for i = 1 to width - 2 { fwrite(horizontal, STDOUT); }
+
+	fwrite(bottomRight, STDOUT);
+
+	return ok;
+}
+
+#@ <BFFillRect(x, y, width, height, char)>
+#@ V-1.0.1 (2025-11-03)
+#@
+#@ Fills a rectangular area with a repeating character ''char'' at position ''x''
+#@ and ''y'' with dimensions ''width'' and ''height''. Character is converted to
+#@ string and only first character is used.
+
+func BFFillRect(x, y, width, height, char)
+{
+	var fillChar = str(char);
+	var packedChar = pack(fillChar);
+
+	for row = 1 to height
+	{
+		CursorToXY(x, y + row - 1);
+
+		for col = 1 to width { fwrite(packedChar, STDOUT); }
+	}
+}
+
+#@ <BFDrawHLine(x, y, width, char)>
+#@ V-1.0.1 (2025-11-03)
+#@
+#@ Draws a horizontal line using repeating character ''char'' starting at position
+#@ ''x'' and ''y'' with length ''width''. Character is converted to string and
+#@ only first character is used.
+
+func BFDrawHLine(x, y, width, char)
+{
+	var lineChar = str(char);
+	var packedChar = pack(lineChar);
+
+	CursorToXY(x, y);
+
+	for i = 1 to width { fwrite(packedChar, STDOUT); }
+}
+
+#@ <BFDrawVLine(x, y, height, char)>
+#@ V-1.0.1 (2025-11-03)
+#@
+#@ Draws a vertical line using repeating character ''char'' starting at position
+#@ ''x'' and ''y'' with length ''height''. Character is converted to string and
+#@ only first character is used.
+
+func BFDrawVLine(x, y, height, char)
+{
+	var lineChar = str(char);
+	var packedChar = pack(lineChar);
+
+	for i = 1 to height
+	{
+		CursorToXY(x, y + i - 1);
+
+		fwrite(packedChar, STDOUT);
+	}
+}
+
+#@ <BFDrawFrame(x, y, width, height, title, style)>
+#@ V-1.0.3 (2026-02-16)
+#@
+#@ Draws a single-line box with ''title'' embedded in the top border at position
+#@ ''x'' and ''y'' with dimensions ''width'' and ''height'' (minimum 2x2). Uses
+#@ the provided ''style''. Title is displayed as " TitleText " with spaces in top
+#@ border and is auto-truncated to fit if too long (max: width - 4). Returns
+#@ ''err'' if width or height less than 2.
+
+func BFDrawFrame(x, y, width, height, title, style)
+{
+	var boxResult = BFDrawBox(x, y, width, height, style);
+
+	if iserr(boxResult) { return err; }
+
+	var titleStr = str(title);
+	var titleLen = lenv(titleStr);
+
+	if titleLen > 0 and width > 4
+	{
+		var maxTitleLen = width - 4;
+
+		if titleLen > maxTitleLen
+		{
+			titleStr = slice(titleStr, 1, maxTitleLen);
+		}
+
+		var titleX = x + 2;
+
+		CursorToXY(titleX, y);
+
+		fwrite(pack(" " + titleStr + " "), STDOUT);
+	}
+
+	return ok;
+}
+
+#@ <BFClearRegion(x, y, width, height)>
+#@ V-1.0.1 (2025-11-03)
+#@
+#@ Clears a rectangular area by filling with spaces at position ''x'' and ''y''
+#@ with dimensions ''width'' and ''height''.
+
+func BFClearRegion(x, y, width, height)
+{
+	BFFillRect(x, y, width, height, " ");
+}
+
+#@ <BFDrawProgressBar(x, y, width, current, total, style)>
+#@ V-1.0.1 (2025-11-03)
+#@
+#@ Draws a horizontal progress bar showing completion percentage at position
+#@ ''x'' and ''y'' with ''width'' characters. Progress is calculated as ''current
+#@ / total'' and clamped to 0-100% range. The ''style'' can be ''BFBOXSINGLE'',
+#@ ''BFBOXDOUBLE'', or ''BFBOXROUNDED''. Returns ''ok'' on success, or ''err'' if
+#@ width less than 1, total is 0, or invalid style.
+
+func BFDrawProgressBar(x, y, width, current, total, style)
+{
+	if width < 1 { return err; }
+
+	if total == 0 { return err; }
+
+	var fillChar = BFPACKEDBLOCK;
+	var emptyChar = BFPACKEDSINGLEH;
+
+	if style == BFBOXSINGLE
+	{
+		fillChar = BFPACKEDBLOCK;
+		emptyChar = BFPACKEDSINGLEH;
+	}
+	elseif style == BFBOXDOUBLE
+	{
+		fillChar = BFPACKEDBLOCK;
+		emptyChar = BFPACKEDDOUBLEH;
+	}
+	elseif style == BFBOXROUNDED
+	{
+		fillChar = BFPACKEDDOT;
+		emptyChar = BFPACKEDSINGLEH;
+	}
+	else
+	{
+		return err;
+	}
+
+	var progress = current / total;
+
+	if progress < 0 { progress = 0; }
+
+	if progress > 1 { progress = 1; }
+
+	var filledWidth = int(width * progress);
+	var emptyWidth = width - filledWidth;
+
+	CursorToXY(x, y);
+
+	for i = 1 to filledWidth { fwrite(fillChar, STDOUT); }
+
+	for i = 1 to emptyWidth { fwrite(emptyChar, STDOUT); }
+
+	return ok;
+}
+
+#@ <BFDrawButton(x, y, text, selected)>
+#@ V-1.0.1 (2025-11-03)
+#@
+#@ Draws a button with label ''text'' at position ''x'' and ''y''. If ''selected''
+#@ is ''true'', draws with inverted colors.
+
+func BFDrawButton(x, y, text, selected)
+{
+	var buttonText = "[ " + str(text) + " ]";
+
+	if selected
+	{
+		SetAttribute(COLORBLACK);
+		SetAttribute(COLORBGWHITE);
+	}
+
+	BFDrawText(x, y, buttonText);
+
+	if selected { SetAttribute(COLORRESET); }
+}
+
+#@ <BFDrawCheckbox(x, y, label, checked)>
+#@ V-1.0.1 (2025-11-03)
+#@
+#@ Draws a checkbox with ''label'' text at position ''x'' and ''y''. If ''checked''
+#@ is ''true'', shows checkmark; otherwise shows empty box.
+
+func BFDrawCheckbox(x, y, label, checked)
+{
+	var checkMark = " ";
+
+	if checked { checkMark = "✓"; }
+
+	var checkboxText = "[" + checkMark + "] " + str(label);
+
+	BFDrawText(x, y, checkboxText);
+}
+
+#@ <BFDrawList(x, y, width, height, items, selected, offset)>
+#@ V-1.0.2 (2025-11-04)
+#@
+#@ Draws a scrollable list with visual selection highlighting at position ''x''
+#@ and ''y'' with dimensions ''width'' and ''height''. The ''items'' array contains
+#@ strings to display, ''selected'' is the index of currently highlighted item, and
+#@ ''offset'' is the scroll offset. Selected item shown with inverted colors. Items
+#@ auto-clipped with ellipsis if too long and padded to full width. Always returns
+#@ ''ok''.
+
+func BFDrawList(x, y, width, height, items, selected, offset)
+{
+	var maxItems = len(items);
+	var visibleItems = height;
+
+	if maxItems == 0
+	{
+		BFClearRegion(x, y, width, height);
+		return ok;
+	}
+
+	if offset < 1 { offset = 1; }
+
+	if offset > maxItems { offset = maxItems; }
+
+	for row = 1 to visibleItems
+	{
+		var itemIndex = offset + row - 1;
+
+		if itemIndex > maxItems
+		{
+			BFClearRegion(x, y + row - 1, width, 1);
+		}
+		else
+		{
+			var item = items[itemIndex];
+			var displayText = BFClipText(item, width);
+
+			displayText = BFPadText(displayText, width, BFALIGNLEFT);
+
+			if itemIndex == selected
+			{
+				SetAttribute(COLORBLACK);
+				SetAttribute(COLORBGWHITE);
+			}
+
+			BFDrawText(x, y + row - 1, displayText);
+
+			if itemIndex == selected { SetAttribute(COLORRESET); }
+		}
+	}
+
+	return ok;
+}
+
+#
+# boxflinger - text.chh
+#
+
+#@ <BFClipText(text, maxWidth)>
+#@ V-1.0.2 (2025-11-04)
+#@
+#@ Truncates ''text'' to fit within ''maxWidth'' characters, adding ellipsis if
+#@ truncated. Returns original text if fits, otherwise truncated with "..."
+#@ appended.
+
+func BFClipText(text, maxWidth)
+{
+	var textStr = str(text);
+	var textLen = lenv(textStr);
+
+	if textLen <= maxWidth { return textStr; }
+
+	if maxWidth <= 3 { return slice(textStr, 1, maxWidth); }
+
+	return slice(textStr, 1, maxWidth - 3) + "...";
+}
+
+#@ <BFTruncateMiddle(text, maxWidth)>
+#@ V-1.0.2 (2025-11-04)
+#@
+#@ Truncates ''text'' in the middle while preserving start and end portions to
+#@ fit within ''maxWidth'' characters. Returns original text if fits, otherwise
+#@ "start...end" format. If maxWidth is 3 or less, truncates without ellipsis.
+#@ Left side gets floor(available/2) chars, right side gets remainder.
+
+func BFTruncateMiddle(text, maxWidth)
+{
+	var textStr = str(text);
+	var textLen = lenv(textStr);
+
+	if textLen <= maxWidth { return textStr; }
+
+	if maxWidth <= 3 { return slice(textStr, 1, maxWidth); }
+
+	var ellipsis = "...";
+	var availableSpace = maxWidth - 3;
+	var leftChars = int(availableSpace / 2);
+	var rightChars = availableSpace - leftChars;
+
+	var leftPart = slice(textStr, 1, leftChars);
+	var actualLen = len(textStr);
+	var rightPart = slice(textStr, actualLen - rightChars + 1, actualLen);
+
+	return leftPart + ellipsis + rightPart;
+}
+
+#@ <BFPadText(text, width, align)>
+#@ V-1.0.2 (2025-11-04)
+#@
+#@ Pads ''text'' with spaces to reach specified ''width'' with alignment mode
+#@ ''align''. Alignment can be ''BFALIGNLEFT'' (adds spaces to right),
+#@ ''BFALIGNRIGHT'' (adds spaces to left), or ''BFALIGNCENTER'' (distributes
+#@ spaces, left gets floor(padding/2)). Returns padded text at specified width,
+#@ or original if already at or exceeds width.
+
+func BFPadText(text, width, align)
+{
+	var textStr = str(text);
+	var textLen = lenv(textStr);
+
+	if textLen >= width { return textStr; }
+
+	var padding = width - textLen;
+
+	if align == BFALIGNLEFT
+	{
+		return textStr + (" " * padding);
+	}
+	elseif align == BFALIGNRIGHT
+	{
+		return (" " * padding) + textStr;
+	}
+	elseif align == BFALIGNCENTER
+	{
+		var leftPad = int(padding / 2);
+		var rightPad = padding - leftPad;
+
+		return (" " * leftPad) + textStr + (" " * rightPad);
+	}
+	else
+	{
+		return textStr;
+	}
+}
+
+#@ <BFMeasureText(text)>
+#@ V-1.0.2 (2025-11-03)
+#@
+#@ Measures the display width of ''text'' in terminal columns.
+
+func BFMeasureText(text)
+{
+	return lenv(str(text));
+}
+
+#@ <BFNextWordPos(text, pos)>
+#@ V-1.0.0 (2026-05-04)
+#@
+#@ Returns the index at the end of the next word in ''text'' after ''pos''.
+
+func BFNextWordPos(text, pos)
+{
+	var n = len(text);
+	var i = pos;
+
+	while i < n and charat(text, i + 1) == " " { i = i + 1; }
+
+	while i < n and charat(text, i + 1) != " " { i = i + 1; }
+
+	return i;
+}
+
+#@ <BFPrevWordPos(text, pos)>
+#@ V-1.0.0 (2026-05-04)
+#@
+#@ Returns the index at the start of the previous word in ''text'' before ''pos''.
+
+func BFPrevWordPos(text, pos)
+{
+	var i = pos;
+
+	while i > 0 and charat(text, i) == " " { i = i - 1; }
+
+	while i > 0 and charat(text, i) != " " { i = i - 1; }
+
+	return i;
+}
+
+#@ <BFWrapText(text, width)>
+#@ V-1.0.4 (2026-06-20)
+#@
+#@ Wraps ''text'' into multiple lines based on word boundaries and ''width''
+#@ limit. Returns list of text lines, each at or under ''width'' characters when
+#@ possible.
+
+func BFWrapText(text, width)
+{
+	var paragraphs = split(str(text), "\n");
+	var lines = [];
+
+	for p = 1 to len(paragraphs)
+	{
+		var words = split(paragraphs[p], " ");
+		var currentLine = "";
+
+		for i = 1 to len(words)
+		{
+			var word = words[i];
+
+			if lenv(currentLine) == 0
+			{
+				currentLine = word;
+			}
+			else
+			{
+				var joined = currentLine + " " + word;
+
+				if lenv(joined) <= width
+				{
+					currentLine = joined;
+				}
+				else
+				{
+					append(lines, currentLine);
+					currentLine = word;
+				}
+			}
+		}
+
+		append(lines, currentLine);
+	}
+
+	return lines;
+}
+
+#
+# boxflinger - layout.chh
+#
+
+#@ <BFHSplit(width, ratios)>
+#@ V-1.0.2 (2026-06-14)
+#@
+#@ Splits a horizontal ''width'' proportionally based on ''ratios'' array of
+#@ positive numbers. Returns list of calculated widths. Ratios are normalized
+#@ automatically (e.g., [1, 2, 1] gives 25%, 50%, 25% of total width). Last
+#@ column gets any remaining pixels from rounding. Returns ''err'' if ratios is
+#@ empty, contains negative values, or sum is zero.
+
+func BFHSplit(width, ratios)
+{
+	if len(ratios) == 0 { return err; }
+
+	var totalRatio = 0;
+	var result = [];
+
+	for i = 1 to len(ratios)
+	{
+		var ratio = ratios[i];
+
+		if ratio < 0 { return err; }
+
+		totalRatio = totalRatio + ratio;
+	}
+
+	if totalRatio == 0 { return err; }
+
+	var remaining = width;
+
+	for i = 1 to len(ratios) - 1
+	{
+		var proportion = ratios[i] / totalRatio;
+		var colWidth = int(width * proportion);
+
+		append(result, colWidth);
+		remaining = remaining - colWidth;
+	}
+
+	append(result, remaining);
+
+	return result;
+}
+
+#@ <BFVSplit(height, ratios)>
+#@ V-1.0.2 (2026-06-14)
+#@
+#@ Splits a vertical ''height'' proportionally based on ''ratios'' array of
+#@ positive numbers. Returns list of calculated heights. Ratios are normalized
+#@ automatically (e.g., [2, 1, 1] gives 50%, 25%, 25% of total height). Last row
+#@ gets any remaining pixels from rounding. Useful for creating multi-row layouts.
+#@ Returns ''err'' if ratios is empty, contains negative values, or sum is zero.
+
+func BFVSplit(height, ratios)
+{
+	if len(ratios) == 0 { return err; }
+
+	var totalRatio = 0;
+	var result = [];
+
+	for i = 1 to len(ratios)
+	{
+		var ratio = ratios[i];
+
+		if ratio < 0 { return err; }
+
+		totalRatio = totalRatio + ratio;
+	}
+
+	if totalRatio == 0 { return err; }
+
+	var remaining = height;
+
+	for i = 1 to len(ratios) - 1
+	{
+		var proportion = ratios[i] / totalRatio;
+		var rowHeight = int(height * proportion);
+
+		append(result, rowHeight);
+		remaining = remaining - rowHeight;
+	}
+
+	append(result, remaining);
+
+	return result;
+}
+
+#@ <BFCenterRect(region, dialogWidth, dialogHeight)>
+#@ V-1.0.0 (2026-05-29)
+#@
+#@ Returns the top left ''[x, y]'' position for a dialog of ''dialogWidth'' by
+#@ ''dialogHeight'' that is centered within ''region'': ''[x, y, width, height]''.
+#@ If the dialog is larger than the region in either axis, the result is clamped
+#@ to the region's origin so it remains visible.
+
+func BFCenterRect(region, dialogWidth, dialogHeight)
+{
+	var rx = region[1];
+	var ry = region[2];
+	var width = region[3];
+	var height = region[4];
+
+	var x = rx + int((width - dialogWidth) / 2);
+	var y = ry + int((height - dialogHeight) / 2);
+
+	if x < rx { x = rx; }
+	if y < ry { y = ry; }
+
+	return [x, y];
+}
+
+#
+# boxflinger - kitty.chh
+#
+
+# https://sw.kovidgoyal.net/kitty/graphics-protocol/
+
+func _BFKittySend_(cmd)
+{
+	fwrite(BFAPC + pack(cmd) + BFST, STDOUT);
+}
+
+#@ <BFKittyClearImages()>
+#@ V-1.0.0 (2026-04-05)
+#@
+#@ Removes all kitty images from the terminal screen.
+
+func BFKittyClearImages()
+{
+	_BFKittySend_("Ga=d,d=A");
+}
+
+#@ <BFKittyDrawImage(x, y, imagePath, cols, rows)>
+#@ V-1.0.0 (2026-04-05)
+#@
+#@ Draws an image at terminal cell position ''x'', ''y'' spanning ''cols'' by
+#@ ''rows'' cells. ''imagePath'' must be an absolute file path.
+
+func BFKittyDrawImage(x, y, imagePath, cols, rows)
+{
+	CursorToXY(x, y);
+
+	var b64path = HttpBase64Encode(pack(imagePath));
+
+	_BFKittySend_("Ga=T,f=100,t=f,c=" + str(cols) + ",r=" + str(rows) + ";" + b64path);
+}
+
+#@ <BFKittyGetCellPixelSize()>
+#@ V-1.0.1 (2026-06-14)
+#@
+#@ Returns the pixel dimensions of one terminal cell as ''[cellW, cellH]'', or
+#@ ''err'' if the terminal does not support the query ''ESC[16t''.
+
+func BFKittyGetCellPixelSize()
+{
+	var saved = getterm();
+
+	if iserr(saved) { return err; }
+
+	setterm(MakeRaw(saved));
+
+	fwrite(CSI + BFCELLQUERY, STDOUT);
+
+	var resp = "";
+	var ch = fread(STDIN, 1);
+
+	while not iserr(ch) and ch[1] != 116
+	{
+		resp = resp + unpack(ch);
+		ch = fread(STDIN, 1);
+	}
+
+	setterm(saved);
+
+	var parts = split(resp, ";");
+
+	if len(parts) != 3 { return err; }
+
+	var cellH = num(parts[2]);
+	var cellW = num(parts[3]);
+
+	if iserr(cellH) or iserr(cellW) { return err; }
+
+	if cellH <= 0 or cellW <= 0 { return err; }
+
+	return [int(cellW), int(cellH)];
+}
+
+#@ <BFKittyDrawImageAuto(x, y, imagePath, cols)>
+#@ V-1.0.0 (2026-04-05)
+#@
+#@ Draws an image at terminal cell position ''x'', ''y'' spanning ''cols'' cells
+#@ wide. Row count is computed automatically by the terminal to preserve the image
+#@ aspect ratio. ''imagePath'' must be an absolute file path.
+
+func BFKittyDrawImageAuto(x, y, imagePath, cols)
+{
+	CursorToXY(x, y);
+
+	var b64path = HttpBase64Encode(pack(imagePath));
+
+	_BFKittySend_("Ga=T,f=100,t=f,c=" + str(cols) + ";" + b64path);
+}
+
+#
+# boxflinger - textinput.chh
+#
+
+#@ <BFTextInput(x, y, width, prompt, defaultValue)>
+#@ V-1.0.4 (2026-04-04)
+#@
+#@ Single-line text input field with full cursor navigation and editing at
+#@ position ''x'' and ''y'' with maximum visible ''width''. The ''prompt'' is
+#@ displayed before input field and ''defaultValue'' sets initial text. Returns
+#@ entered text when Enter is pressed, or ''err'' if ESC is pressed or width less
+#@ than 1. Supports Left/Right arrows, Ctrl+Left/Right, Home/End, Backspace,
+#@ Delete, and all printable characters.
+
+func BFTextInput(x, y, width, prompt, defaultValue)
+{
+	if width < 1 { return err; }
+
+	var text = str(defaultValue);
+	var cursorPos = len(text);
+
+	var running = true;
+	var result = err;
+	var inputX = x + lenv(prompt);
+
+	HideCursor();
+
+	BFDrawText(x, y, prompt);
+
+	var scrollOffset = 0;
+
+	if len(text) > width and cursorPos >= width
+	{
+		scrollOffset = cursorPos - width + 1;
+	}
+
+	var displayText = text;
+
+	if len(text) > width
+	{
+		displayText = slice(text, scrollOffset + 1, scrollOffset + width);
+	}
+
+	BFClearRegion(inputX, y, width, 1);
+	BFDrawText(inputX, y, displayText);
+	CursorToXY(inputX + cursorPos - scrollOffset, y);
+	ShowCursor();
+
+	while running
+	{
+		var key = getch();
+
+		HideCursor();
+
+		var textChanged = false;
+
+		if key == BFKEYENTER
+		{
+			result = text;
+			running = false;
+		}
+		elseif key == BFKEYESC
+		{
+			result = err;
+			running = false;
+		}
+		elseif key == BFKEYBACKSPACE
+		{
+			if cursorPos > 0
+			{
+				var before = slice(text, 1, cursorPos - 1);
+				var after = slice(text, cursorPos + 1, len(text));
+
+				text = before + after;
+				cursorPos = cursorPos - 1;
+				textChanged = true;
+			}
+		}
+		elseif key == BFKEYLEFT
+		{
+			if cursorPos > 0 { cursorPos = cursorPos - 1; }
+		}
+		elseif key == BFKEYRIGHT
+		{
+			if cursorPos < len(text) { cursorPos = cursorPos + 1; }
+		}
+		elseif key == BFKEYCTRLLEFT
+		{
+			cursorPos = BFPrevWordPos(text, cursorPos);
+		}
+		elseif key == BFKEYCTRLRIGHT
+		{
+			cursorPos = BFNextWordPos(text, cursorPos);
+		}
+		elseif key == BFKEYHOME
+		{
+			cursorPos = 0;
+		}
+		elseif key == BFKEYEND
+		{
+			cursorPos = len(text);
+		}
+		elseif key == BFKEYDELETE
+		{
+			if cursorPos < len(text)
+			{
+				var before = slice(text, 1, cursorPos);
+				var after = slice(text, cursorPos + 2, len(text));
+
+				text = before + after;
+				textChanged = true;
+			}
+		}
+		elseif key == BFKEYTAB
+		{
+		}
+		elseif key == BFKEYUP
+		{
+		}
+		elseif key == BFKEYDOWN
+		{
+		}
+		elseif key == BFKEYCTRLUP
+		{
+		}
+		elseif key == BFKEYCTRLDOWN
+		{
+		}
+		elseif key == BFKEYCTRLU
+		{
+			text = "";
+			cursorPos = 0;
+			textChanged = true;
+		}
+		elseif type(key) == "bytes" and len(key) >= 1
+		{
+			var char = unpack(key);
+
+			if len(char) > 0
+			{
+				var before = slice(text, 1, cursorPos);
+				var after = slice(text, cursorPos + 1, len(text));
+
+				text = before + char + after;
+				cursorPos = cursorPos + 1;
+				textChanged = true;
+			}
+		}
+
+		if running
+		{
+			var newScrollOffset = 0;
+
+			if len(text) > width and cursorPos >= width
+			{
+				newScrollOffset = cursorPos - width + 1;
+			}
+
+			if textChanged or newScrollOffset != scrollOffset
+			{
+				scrollOffset = newScrollOffset;
+
+				var newDisplayText = text;
+
+				if len(text) > width
+				{
+					newDisplayText = slice(text, scrollOffset + 1, scrollOffset + width);
+				}
+
+				BFClearRegion(inputX, y, width, 1);
+				BFDrawText(inputX, y, newDisplayText);
+			}
+
+			CursorToXY(inputX + cursorPos - scrollOffset, y);
+			ShowCursor();
+		}
+	}
+
+	ShowCursor();
+	return result;
+}
+
+#
+# boxflinger - numberinput.chh
+#
+
+#@ <BFNumberInput(x, y, prompt, min, max, defaultValue)>
+#@ V-1.0.5 (2026-06-14)
+#@
+#@ Numeric input field with range validation at position ''x'' and ''y''. Only
+#@ accepts digits and optional minus sign. The ''prompt'' text has range appended
+#@ automatically. The ''min'' and ''max'' define allowed range, and ''defaultValue''
+#@ sets initial value. Returns validated number when Enter is pressed, or ''err''
+#@ if ESC is pressed. Shows error message for 1 second if value outside range.
+#@ Only supports integers.
+
+func BFNumberInput(x, y, prompt, min, max, defaultValue)
+{
+	var text = str(int(defaultValue));
+	var cursorPos = len(text);
+	var running = true;
+	var result = err;
+
+	var minStr = str(int(min));
+	var maxStr = str(int(max));
+	var fullPrompt = prompt + " (" + minStr + "-" + maxStr + "): ";
+	var maxInputLen = lenv(minStr);
+
+	if lenv(maxStr) > maxInputLen { maxInputLen = lenv(maxStr); }
+
+	var errorMsg = "Value must be between " + minStr + " and " + maxStr;
+	var inputX = x + lenv(fullPrompt);
+
+	HideCursor();
+
+	BFDrawText(x, y, fullPrompt);
+
+	BFClearRegion(inputX, y, maxInputLen, 1);
+	BFDrawText(inputX, y, text);
+	CursorToXY(inputX + cursorPos, y);
+	ShowCursor();
+
+	while running
+	{
+		var key = getch();
+
+		HideCursor();
+
+		var textChanged = false;
+
+		if key == BFKEYENTER
+		{
+			if text != ""
+			{
+				var value = num(text);
+
+				if not iserr(value) and value >= min and value <= max
+				{
+					result = value;
+					running = false;
+				}
+				else
+				{
+					BFDrawText(x, y + 1, errorMsg);
+
+					sleep(1000);
+
+					BFClearRegion(x, y + 1, lenv(errorMsg), 1);
+				}
+			}
+		}
+		elseif key == BFKEYESC
+		{
+			result = err;
+			running = false;
+		}
+		elseif key == BFKEYBACKSPACE
+		{
+			if cursorPos > 0
+			{
+				var before = slice(text, 1, cursorPos - 1);
+				var after = slice(text, cursorPos + 1, len(text));
+
+				text = before + after;
+				cursorPos = cursorPos - 1;
+				textChanged = true;
+			}
+		}
+		elseif type(key) == "bytes"
+			and len(key) == 1
+			and key[1] >= 48
+			and key[1] <= 57 # 0 (48) to 9 (57)
+		{
+			if len(text) < maxInputLen
+			{
+				var char = unpack(key);
+				var before = slice(text, 1, cursorPos);
+				var after = slice(text, cursorPos + 1, len(text));
+
+				text = before + char + after;
+				cursorPos = cursorPos + 1;
+				textChanged = true;
+			}
+		}
+		elseif type(key) == "bytes" # Allow minus for negative values (b[45])
+			and len(key) == 1
+			and key[1] == 45
+			and cursorPos == 0
+		{
+			if len(text) < maxInputLen
+			{
+				text = "-" + text;
+				cursorPos = 1;
+				textChanged = true;
+			}
+		}
+		elseif key == BFKEYLEFT
+		{
+			if cursorPos > 0 { cursorPos = cursorPos - 1; }
+		}
+		elseif key == BFKEYRIGHT
+		{
+			if cursorPos < len(text) { cursorPos = cursorPos + 1; }
+		}
+		elseif key == BFKEYHOME
+		{
+			cursorPos = 0;
+		}
+		elseif key == BFKEYEND
+		{
+			cursorPos = len(text);
+		}
+		elseif key == BFKEYDELETE
+		{
+			if cursorPos < len(text)
+			{
+				var before = slice(text, 1, cursorPos);
+				var after = slice(text, cursorPos + 2, len(text));
+
+				text = before + after;
+				textChanged = true;
+			}
+		}
+		elseif key == BFKEYUP
+		{
+		}
+		elseif key == BFKEYDOWN
+		{
+		}
+		elseif key == BFKEYCTRLU
+		{
+			text = "";
+			cursorPos = 0;
+			textChanged = true;
+		}
+
+		if running
+		{
+			if textChanged
+			{
+				BFClearRegion(inputX, y, maxInputLen, 1);
+				BFDrawText(inputX, y, text);
+			}
+
+			CursorToXY(inputX + cursorPos, y);
+			ShowCursor();
+		}
+	}
+
+	ShowCursor();
+	return result;
+}
+
+#
+# boxflinger - textbox.chh
+#
+
+#@ <BFTextBox(x, y, width, height, title, defaultText, style)>
+#@ V-1.0.5 (2026-06-14)
+#@
+#@ Multi-line text editor with full editing capabilities and scrolling at position
+#@ ''x'' and ''y'' with dimensions ''width'' and ''height''. The ''title'' is
+#@ displayed in top border and ''defaultText'' sets initial content. Uses the
+#@ provided ''style''. Returns full edited text when Ctrl+D is pressed, or ''err''
+#@ if ESC is pressed. Supports arrow keys, Ctrl+Left/Right, Home/End, Page Up/Down,
+#@ Ctrl+Home/End, Backspace, Delete, Enter, and all printable characters. Auto-
+#@ scrolls to keep cursor visible. Status line shows current line number and key
+#@ hints.
+
+func _BFTextBoxLine_(x, y, width, lines, lineIndex, offset, cursorLine, cursorCol)
+{
+	var maxLineWidth = width - 2;
+	var row = lineIndex - offset + 1;
+
+	if lineIndex > len(lines)
+	{
+		BFClearRegion(x + 1, y + row, maxLineWidth, 1);
+	}
+	else
+	{
+		var line = lines[lineIndex];
+		var displayLine = line;
+
+		if lineIndex == cursorLine and len(line) > maxLineWidth
+		{
+			var hScrollOffset = cursorCol - maxLineWidth + 1;
+
+			if hScrollOffset < 0 { hScrollOffset = 0; }
+
+			displayLine = slice(line, hScrollOffset + 1, hScrollOffset + maxLineWidth);
+		}
+		else
+		{
+			displayLine = BFClipText(line, maxLineWidth);
+		}
+
+		displayLine = BFPadText(displayLine, maxLineWidth, BFALIGNLEFT);
+		BFDrawText(x + 1, y + row, displayLine);
+	}
+}
+
+func BFTextBox(x, y, width, height, title, defaultText, style)
+{
+	if width < 5 or height < 5 { return err; }
+
+	var lines = split(defaultText, "\n");
+
+	if len(lines) == 0 { append(lines, ""); }
+
+	var cursorLine = 1;
+	var cursorCol = 0;
+	var offset = 1;
+	var running = true;
+	var result = err;
+	var maxLineWidth = width - 2;
+	var visibleHeight = height - 3;
+
+	HideCursor();
+
+	BFDrawFrame(x, y, width, height, title, style);
+
+	for row = 1 to visibleHeight
+	{
+		_BFTextBoxLine_(x, y, width, lines, offset + row - 1, offset, cursorLine, cursorCol);
+	}
+
+	var initStatus = "Line " + str(cursorLine) + "/" + str(len(lines)) + " | ESC=Cancel, Ctrl+D=Done";
+	initStatus = BFClipText(initStatus, width - 2);
+	BFDrawText(x + 1, y + height - 2, initStatus);
+
+	CursorToXY(x + 1, y + 1);
+	ShowCursor();
+
+	while running
+	{
+		var key = getch();
+
+		HideCursor();
+
+		var prevCursorLine = cursorLine;
+		var prevOffset = offset;
+
+		# redrawCurrent: redraw the current cursorLine row
+
+		# redrawPrev: also redraw prevCursorLine (when cursorLine changed)
+
+		# fromRedrawLine: redraw from this line index to bottom of visible area
+		# (0 = unused)
+
+		var redrawCurrent = false;
+		var redrawPrev = false;
+		var fromRedrawLine = 0;
+
+		if key == BFKEYESC
+		{
+			result = err;
+			running = false;
+		}
+		elseif key == BFKEYCTRLD
+		{
+			result = join(lines, "\n");
+			running = false;
+		}
+		elseif key == BFKEYCTRLU
+		{
+			lines[cursorLine] = "";
+			cursorCol = 0;
+			redrawCurrent = true;
+		}
+		elseif key == BFKEYENTER
+		{
+			var currentLine = lines[cursorLine];
+			var before = slice(currentLine, 1, cursorCol);
+			var after = slice(currentLine, cursorCol + 1, len(currentLine));
+
+			lines[cursorLine] = before;
+
+			var newLines = [];
+
+			for i = 1 to cursorLine { append(newLines, lines[i]); }
+
+			append(newLines, after);
+
+			for i = cursorLine + 1 to len(lines) { append(newLines, lines[i]); }
+
+			lines = newLines;
+			fromRedrawLine = cursorLine;
+			cursorLine = cursorLine + 1;
+			cursorCol = 0;
+		}
+		elseif key == BFKEYBACKSPACE
+		{
+			var currentLine = lines[cursorLine];
+
+			if cursorCol > 0
+			{
+				var before = slice(currentLine, 1, cursorCol - 1);
+				var after = slice(currentLine, cursorCol + 1, len(currentLine));
+
+				lines[cursorLine] = before + after;
+				cursorCol = cursorCol - 1;
+				redrawCurrent = true;
+			}
+			elseif cursorLine > 1
+			{
+				var prevLine = lines[cursorLine - 1];
+				var mergedLine = prevLine + currentLine;
+
+				var newLines = [];
+
+				for i = 1 to cursorLine - 2 { append(newLines, lines[i]); }
+
+				append(newLines, mergedLine);
+
+				for i = cursorLine + 1 to len(lines)
+				{
+					append(newLines, lines[i]);
+				}
+
+				lines = newLines;
+				cursorLine = cursorLine - 1;
+				cursorCol = len(prevLine);
+				fromRedrawLine = cursorLine;
+			}
+		}
+		elseif key == BFKEYUP or key == BFKEYCTRLUP
+		{
+			if cursorLine > 1
+			{
+				cursorLine = cursorLine - 1;
+				var currentLine = lines[cursorLine];
+
+				if cursorCol > len(currentLine)
+				{
+					cursorCol = len(currentLine);
+				}
+
+				redrawCurrent = true;
+				redrawPrev = true;
+			}
+		}
+		elseif key == BFKEYDOWN or key == BFKEYCTRLDOWN
+		{
+			if cursorLine < len(lines)
+			{
+				cursorLine = cursorLine + 1;
+				var currentLine = lines[cursorLine];
+
+				if cursorCol > len(currentLine)
+				{
+					cursorCol = len(currentLine);
+				}
+
+				redrawCurrent = true;
+				redrawPrev = true;
+			}
+		}
+		elseif key == BFKEYLEFT
+		{
+			if cursorCol > 0
+			{
+				var prevHScroll = 0;
+				if cursorCol >= maxLineWidth
+				{
+					prevHScroll = cursorCol - maxLineWidth + 1;
+				}
+
+				cursorCol = cursorCol - 1;
+
+				var newHScroll = 0;
+				if cursorCol >= maxLineWidth
+				{
+					newHScroll = cursorCol - maxLineWidth + 1;
+				}
+				if newHScroll != prevHScroll { redrawCurrent = true; }
+			}
+			elseif cursorLine > 1
+			{
+				cursorLine = cursorLine - 1;
+				cursorCol = len(lines[cursorLine]);
+
+				redrawCurrent = true;
+				redrawPrev = true;
+			}
+		}
+		elseif key == BFKEYRIGHT
+		{
+			var currentLine = lines[cursorLine];
+
+			if cursorCol < len(currentLine)
+			{
+				var prevHScroll = 0;
+				if cursorCol >= maxLineWidth
+				{
+					prevHScroll = cursorCol - maxLineWidth + 1;
+				}
+
+				cursorCol = cursorCol + 1;
+
+				var newHScroll = 0;
+				if cursorCol >= maxLineWidth
+				{
+					newHScroll = cursorCol - maxLineWidth + 1;
+				}
+				if newHScroll != prevHScroll { redrawCurrent = true; }
+			}
+			elseif cursorLine < len(lines)
+			{
+				cursorLine = cursorLine + 1;
+				cursorCol = 0;
+
+				redrawCurrent = true;
+				redrawPrev = true;
+			}
+		}
+		elseif key == BFKEYCTRLLEFT
+		{
+			if cursorCol > 0
+			{
+				var prevHScroll = 0;
+				if cursorCol >= maxLineWidth
+				{
+					prevHScroll = cursorCol - maxLineWidth + 1;
+				}
+
+				cursorCol = BFPrevWordPos(lines[cursorLine], cursorCol);
+
+				var newHScroll = 0;
+				if cursorCol >= maxLineWidth
+				{
+					newHScroll = cursorCol - maxLineWidth + 1;
+				}
+				if newHScroll != prevHScroll { redrawCurrent = true; }
+			}
+			elseif cursorLine > 1
+			{
+				cursorLine = cursorLine - 1;
+				cursorCol = len(lines[cursorLine]);
+
+				redrawCurrent = true;
+				redrawPrev = true;
+			}
+		}
+		elseif key == BFKEYCTRLRIGHT
+		{
+			var currentLine = lines[cursorLine];
+
+			if cursorCol < len(currentLine)
+			{
+				var prevHScroll = 0;
+				if cursorCol >= maxLineWidth
+				{
+					prevHScroll = cursorCol - maxLineWidth + 1;
+				}
+
+				cursorCol = BFNextWordPos(currentLine, cursorCol);
+
+				var newHScroll = 0;
+				if cursorCol >= maxLineWidth
+				{
+					newHScroll = cursorCol - maxLineWidth + 1;
+				}
+				if newHScroll != prevHScroll { redrawCurrent = true; }
+			}
+			elseif cursorLine < len(lines)
+			{
+				cursorLine = cursorLine + 1;
+				cursorCol = 0;
+
+				redrawCurrent = true;
+				redrawPrev = true;
+			}
+		}
+		elseif key == BFKEYHOME
+		{
+			var prevHScroll = 0;
+			if cursorCol >= maxLineWidth
+			{
+				prevHScroll = cursorCol - maxLineWidth + 1;
+			}
+			cursorCol = 0;
+			if prevHScroll != 0 { redrawCurrent = true; }
+		}
+		elseif key == BFKEYEND
+		{
+			var prevHScroll = 0;
+			if cursorCol >= maxLineWidth
+			{
+				prevHScroll = cursorCol - maxLineWidth + 1;
+			}
+			var currentLine = lines[cursorLine];
+
+			cursorCol = len(currentLine);
+
+			var newHScroll = 0;
+			if cursorCol >= maxLineWidth
+			{
+				newHScroll = cursorCol - maxLineWidth + 1;
+			}
+			if newHScroll != prevHScroll { redrawCurrent = true; }
+		}
+		elseif key == BFKEYDELETE
+		{
+			var currentLine = lines[cursorLine];
+
+			if cursorCol < len(currentLine)
+			{
+				var before = slice(currentLine, 1, cursorCol);
+				var after = slice(currentLine, cursorCol + 2, len(currentLine));
+
+				lines[cursorLine] = before + after;
+				redrawCurrent = true;
+			}
+			elseif cursorLine < len(lines)
+			{
+				var nextLine = lines[cursorLine + 1];
+				var mergedLine = currentLine + nextLine;
+
+				var newLines = [];
+
+				for i = 1 to cursorLine - 1 { append(newLines, lines[i]); }
+
+				append(newLines, mergedLine);
+
+				for i = cursorLine + 2 to len(lines)
+				{
+					append(newLines, lines[i]);
+				}
+
+				lines = newLines;
+				fromRedrawLine = cursorLine;
+			}
+		}
+		elseif key == BFKEYPAGEUP
+		{
+			var pageSize = height - 3;
+
+			if cursorLine > pageSize { cursorLine = cursorLine - pageSize; }
+			else { cursorLine = 1; }
+
+			var currentLine = lines[cursorLine];
+
+			if cursorCol > len(currentLine) { cursorCol = len(currentLine); }
+
+			redrawCurrent = true;
+			redrawPrev = true;
+		}
+		elseif key == BFKEYPAGEDOWN
+		{
+			var pageSize = height - 3;
+
+			if cursorLine + pageSize <= len(lines)
+			{
+				cursorLine = cursorLine + pageSize;
+			}
+			else
+			{
+				cursorLine = len(lines);
+			}
+
+			var currentLine = lines[cursorLine];
+			if cursorCol > len(currentLine) { cursorCol = len(currentLine); }
+
+			redrawCurrent = true;
+			redrawPrev = true;
+		}
+		elseif key == BFKEYCTRLHOME
+		{
+			cursorLine = 1;
+			cursorCol = 0;
+			redrawCurrent = true;
+			redrawPrev = true;
+		}
+		elseif key == BFKEYCTRLEND
+		{
+			cursorLine = len(lines);
+			var currentLine = lines[cursorLine];
+			cursorCol = len(currentLine);
+			redrawCurrent = true;
+			redrawPrev = true;
+		}
+		else
+		{
+			if type(key) == "bytes" and len(key) >= 1
+			{
+				var char = unpack(key);
+
+				if len(char) > 0
+				{
+					var currentLine = lines[cursorLine];
+					var before = slice(currentLine, 1, cursorCol);
+					var after = slice(currentLine, cursorCol + 1, len(currentLine));
+
+					lines[cursorLine] = before + char + after;
+					cursorCol = cursorCol + 1;
+					redrawCurrent = true;
+				}
+			}
+		}
+
+		if running
+		{
+			if cursorLine < offset { offset = cursorLine; }
+
+			if cursorLine >= offset + height - 4
+			{
+				offset = cursorLine - height + 4;
+			}
+
+			# Scroll changed: override with full redraw from top
+			if offset != prevOffset
+			{
+				fromRedrawLine = offset;
+				redrawCurrent = false;
+				redrawPrev = false;
+			}
+
+			if fromRedrawLine > 0
+			{
+				var startRow = fromRedrawLine - offset + 1;
+
+				if startRow < 1 { startRow = 1; }
+
+				for row = startRow to visibleHeight
+				{
+					_BFTextBoxLine_(x, y, width, lines, offset + row - 1, offset, cursorLine, cursorCol);
+				}
+			}
+			else
+			{
+				if redrawPrev and prevCursorLine != cursorLine
+				{
+					var prevRow = prevCursorLine - offset + 1;
+
+					if prevRow >= 1 and prevRow <= visibleHeight
+					{
+						_BFTextBoxLine_(x, y, width, lines, prevCursorLine, offset, cursorLine, cursorCol);
+					}
+				}
+
+				if redrawCurrent
+				{
+					var curRow = cursorLine - offset + 1;
+
+					if curRow >= 1 and curRow <= visibleHeight
+					{
+						_BFTextBoxLine_(x, y, width, lines, cursorLine, offset, cursorLine, cursorCol);
+					}
+				}
+			}
+
+			var status = "Line " + str(cursorLine) + "/" + str(len(lines)) + " | ESC=Cancel, Ctrl+D=Done";
+			status = BFClipText(status, width - 2);
+			BFDrawText(x + 1, y + height - 2, status);
+
+			var hScrollOffset = 0;
+			if cursorCol >= maxLineWidth
+			{
+				hScrollOffset = cursorCol - maxLineWidth + 1;
+			}
+
+			var displayRow = cursorLine - offset;
+			var displayCol = cursorCol - hScrollOffset;
+
+			CursorToXY(x + 1 + displayCol, y + 1 + displayRow);
+			ShowCursor();
+		}
+	}
+
+	ShowCursor();
+
+	return result;
+}
+
+#
+# boxflinger - select.chh
+#
+
+#@ <BFSelect(x, y, width, height, items, defaultIndex)>
+#@ V-1.0.4 (2026-06-02)
+#@
+#@ Scrollable list selection widget with visual highlighting at position ''x''
+#@ and ''y'' with dimensions ''width'' and ''height''. The ''items'' array
+#@ contains strings to display and ''defaultIndex'' sets initially selected item.
+#@ Returns index of selected item when Enter is pressed, or ''err'' if ESC is
+#@ pressed. Selected item shown with inverted colors. List automatically scrolls
+#@ to keep selection visible. Items are clipped/padded to fit width.
+
+func BFSelect(x, y, width, height, items, defaultIndex)
+{
+	var selected = defaultIndex;
+	var offset = 1;
+	var running = true;
+	var result = err;
+
+	if len(items) == 0 { return err; }
+
+	if selected < 1 { selected = 1; }
+
+	if selected > len(items) { selected = len(items); }
+
+	if selected < offset { offset = selected; }
+
+	if selected >= offset + height { offset = selected - height + 1; }
+
+	HideCursor();
+
+	BFDrawList(x, y, width, height, items, selected, offset);
+
+	while running
+	{
+		var prevSelected = selected;
+		var prevOffset = offset;
+		var key = getch();
+
+		if key == BFKEYENTER
+		{
+			result = selected;
+			running = false;
+		}
+		elseif key == BFKEYESC
+		{
+			result = err;
+			running = false;
+		}
+		elseif key == BFKEYUP
+		{
+			if selected > 1 { selected = selected - 1; }
+		}
+		elseif key == BFKEYDOWN
+		{
+			if selected < len(items) { selected = selected + 1; }
+		}
+		elseif key == BFKEYHOME
+		{
+			selected = 1;
+		}
+		elseif key == BFKEYEND
+		{
+			selected = len(items);
+		}
+		elseif key == BFKEYPAGEUP
+		{
+			if selected > height { selected = selected - height + 1; }
+			else { selected = 1; }
+		}
+		elseif key == BFKEYPAGEDOWN
+		{
+			if selected + height <= len(items)
+			{
+				selected = selected + height - 1;
+			}
+			else
+			{
+				selected = len(items);
+			}
+		}
+
+		if running
+		{
+			if selected < offset { offset = selected; }
+
+			if selected >= offset + height { offset = selected - height + 1; }
+
+			if offset != prevOffset
+			{
+				BFDrawList(x, y, width, height, items, selected, offset);
+			}
+			elseif selected != prevSelected
+			{
+				var prevText = BFClipText(items[prevSelected], width);
+				prevText = BFPadText(prevText, width, BFALIGNLEFT);
+				BFDrawText(x, y + prevSelected - offset, prevText);
+
+				var newText = BFClipText(items[selected], width);
+				newText = BFPadText(newText, width, BFALIGNLEFT);
+				SetAttribute(COLORBLACK);
+				SetAttribute(COLORBGWHITE);
+				BFDrawText(x, y + selected - offset, newText);
+				SetAttribute(COLORRESET);
+			}
+		}
+	}
+
+	ShowCursor();
+
+	return result;
+}
+
+#
+# boxflinger - menu.chh
+#
+
+#@ <BFMenu(x, y, items, defaultIndex)>
+#@ V-1.0.4 (2026-06-02)
+#@
+#@ Simple vertical menu with visual highlighting at position ''x'' and ''y''. The
+#@ ''items'' array contains strings for menu items and ''defaultIndex'' sets
+#@ initially selected item. Returns index of selected item when Enter is pressed,
+#@ or ''err'' if ESC is pressed. Selected item shown with inverted colors. Items
+#@ displayed with padding: "  Item  ". No scrolling support, all items are visible.
+
+func BFMenu(x, y, items, defaultIndex)
+{
+	var selected = defaultIndex;
+	var running = true;
+	var result = err;
+
+	if len(items) == 0 { return err; }
+
+	if selected < 1 { selected = 1; }
+
+	if selected > len(items) { selected = len(items); }
+
+	HideCursor();
+
+	for i = 1 to len(items)
+	{
+		var item = items[i];
+
+		if i == selected
+		{
+			SetAttribute(COLORBLACK);
+			SetAttribute(COLORBGWHITE);
+		}
+
+		BFDrawText(x, y + i - 1, "  " + item + "  ");
+
+		if i == selected { SetAttribute(COLORRESET); }
+	}
+
+	while running
+	{
+		var prevSelected = selected;
+		var key = getch();
+
+		if key == BFKEYENTER
+		{
+			result = selected;
+			running = false;
+		}
+		elseif key == BFKEYESC
+		{
+			result = err;
+			running = false;
+		}
+		elseif key == BFKEYUP
+		{
+			if selected > 1 { selected = selected - 1; }
+		}
+		elseif key == BFKEYDOWN
+		{
+			if selected < len(items) { selected = selected + 1; }
+		}
+		elseif key == BFKEYHOME
+		{
+			selected = 1;
+		}
+		elseif key == BFKEYEND
+		{
+			selected = len(items);
+		}
+		elseif key == BFKEYPAGEUP
+		{
+			if selected > BFPAGEITEMS { selected = selected - BFPAGEITEMS; }
+			else { selected = 1; }
+		}
+		elseif key == BFKEYPAGEDOWN
+		{
+			if selected + BFPAGEITEMS <= len(items)
+			{
+				selected = selected + BFPAGEITEMS;
+			}
+			else
+			{
+				selected = len(items);
+			}
+		}
+
+		if running and selected != prevSelected
+		{
+			BFDrawText(x, y + prevSelected - 1, "  " + items[prevSelected] + "  ");
+
+			SetAttribute(COLORBLACK);
+			SetAttribute(COLORBGWHITE);
+			BFDrawText(x, y + selected - 1, "  " + items[selected] + "  ");
+			SetAttribute(COLORRESET);
+		}
+	}
+
+	ShowCursor();
+
+	return result;
+}
+
+#
+# boxflinger - radiogroup.chh
+#
+
+#@ <BFRadioGroup(x, y, items, defaultIndex)>
+#@ V-1.0.4 (2026-06-02)
+#@
+#@ Radio button group for single selection from multiple options at position ''x''
+#@ and ''y''. The ''items'' array contains strings for each radio button option
+#@ and ''defaultIndex'' sets initially selected item. Returns index of selected
+#@ item when Enter is pressed, or ''err'' if ESC is pressed. Displays as "( ) Option"
+#@ for unselected and "(•) Option" for selected. Items stacked vertically at
+#@ consecutive y positions.
+
+func BFRadioGroup(x, y, items, defaultIndex)
+{
+	var selected = defaultIndex;
+	var running = true;
+	var result = err;
+
+	if len(items) == 0 { return err; }
+
+	if selected < 1 { selected = 1; }
+
+	if selected > len(items) { selected = len(items); }
+
+	HideCursor();
+
+	for i = 1 to len(items)
+	{
+		var radio = "( )";
+
+		if i == selected { radio = "(•)"; }
+
+		BFDrawText(x, y + i - 1, radio + " " + items[i]);
+	}
+
+	while running
+	{
+		var prevSelected = selected;
+		var key = getch();
+
+		if key == BFKEYENTER
+		{
+			result = selected;
+			running = false;
+		}
+		elseif key == BFKEYESC
+		{
+			result = err;
+			running = false;
+		}
+		elseif key == BFKEYUP
+		{
+			if selected > 1 { selected = selected - 1; }
+		}
+		elseif key == BFKEYDOWN
+		{
+			if selected < len(items) { selected = selected + 1; }
+		}
+		elseif key == BFKEYHOME
+		{
+			selected = 1;
+		}
+		elseif key == BFKEYEND
+		{
+			selected = len(items);
+		}
+		elseif key == BFKEYPAGEUP
+		{
+			if selected > BFPAGEITEMS { selected = selected - BFPAGEITEMS; }
+			else { selected = 1; }
+		}
+		elseif key == BFKEYPAGEDOWN
+		{
+			if selected + BFPAGEITEMS <= len(items)
+			{
+				selected = selected + BFPAGEITEMS;
+			}
+			else
+			{
+				selected = len(items);
+			}
+		}
+
+		if running and selected != prevSelected
+		{
+			BFDrawText(x, y + prevSelected - 1, "( ) " + items[prevSelected]);
+			BFDrawText(x, y + selected - 1, "(•) " + items[selected]);
+		}
+	}
+
+	ShowCursor();
+
+	return result;
+}
+
+#
+# boxflinger - checkboxlist.chh
+#
+
+#@ <BFCheckboxList(x, y, width, height, items, checkedItems)>
+#@ V-1.0.3 (2026-06-14)
+#@
+#@ Multiple selection list with toggleable checkboxes and scrolling at position
+#@ ''x'' and ''y'' with dimensions ''width'' and ''height''. The ''items'' array
+#@ contains strings for checkbox options and ''checkedItems'' array contains
+#@ initially checked indices. Returns list of checked item indices when Enter is
+#@ pressed, or ''err'' if ESC is pressed. Checked items display as "[✓] Item",
+#@ unchecked as "[ ] Item". Current item shown with inverted colors. List
+#@ automatically scrolls to keep selection visible. Can check/uncheck any number
+#@ of items.
+
+func _BFCheckboxRow_(x, y, width, items, checked, itemIndex, selected, offset)
+{
+	var item = items[itemIndex];
+	var isChecked = checked[itemIndex];
+	var checkMark = " ";
+
+	if isChecked { checkMark = "✓"; }
+
+	var displayText = "[" + checkMark + "] " + item;
+	displayText = BFClipText(displayText, width);
+	displayText = BFPadText(displayText, width, BFALIGNLEFT);
+
+	if itemIndex == selected
+	{
+		SetAttribute(COLORBLACK);
+		SetAttribute(COLORBGWHITE);
+	}
+
+	BFDrawText(x, y + itemIndex - offset, displayText);
+
+	if itemIndex == selected { SetAttribute(COLORRESET); }
+}
+
+func BFCheckboxList(x, y, width, height, items, checkedItems)
+{
+	var selected = 1;
+	var offset = 1;
+	var checked = [];
+
+	for i = 1 to len(items)
+	{
+		var isChecked = false;
+
+		for j = 1 to len(checkedItems)
+		{
+			if i == checkedItems[j] { isChecked = true; }
+		}
+
+		append(checked, isChecked);
+	}
+
+	var running = true;
+	var result = err;
+
+	HideCursor();
+
+	for row = 1 to height
+	{
+		var itemIndex = offset + row - 1;
+
+		if itemIndex > len(items)
+		{
+			BFClearRegion(x, y + row - 1, width, 1);
+		}
+		else
+		{
+			_BFCheckboxRow_(x, y, width, items, checked, itemIndex, selected, offset);
+		}
+	}
+
+	while running
+	{
+		var prevSelected = selected;
+		var prevOffset = offset;
+		var spaceToggled = false;
+		var key = getch();
+
+		if key == BFKEYENTER
+		{
+			result = [];
+
+			for i = 1 to len(checked)
+			{
+				if checked[i] { append(result, i); }
+			}
+
+			running = false;
+		}
+		elseif key == BFKEYESC
+		{
+			result = err;
+			running = false;
+		}
+		elseif type(key) == "bytes" and len(key) == 1 and key[1] == 32
+		{
+			var currentState = checked[selected];
+			checked[selected] = not currentState;
+			spaceToggled = true;
+		}
+		elseif key == BFKEYUP
+		{
+			if selected > 1 { selected = selected - 1; }
+		}
+		elseif key == BFKEYDOWN
+		{
+			if selected < len(items) { selected = selected + 1; }
+		}
+
+		if running
+		{
+			if selected < offset { offset = selected; }
+
+			if selected >= offset + height { offset = selected - height + 1; }
+
+			if offset != prevOffset
+			{
+				for row = 1 to height
+				{
+					var itemIndex = offset + row - 1;
+
+					if itemIndex > len(items)
+					{
+						BFClearRegion(x, y + row - 1, width, 1);
+					}
+					else
+					{
+						_BFCheckboxRow_(x, y, width, items, checked, itemIndex, selected, offset);
+					}
+				}
+			}
+			elseif selected != prevSelected
+			{
+				_BFCheckboxRow_(x, y, width, items, checked, prevSelected, selected, offset);
+				_BFCheckboxRow_(x, y, width, items, checked, selected, selected, offset);
+			}
+			elseif spaceToggled
+			{
+				_BFCheckboxRow_(x, y, width, items, checked, selected, selected, offset);
+			}
+		}
+	}
+
+	ShowCursor();
+
+	return result;
+}
+
+#
+# boxflinger - confirm.chh
+#
+
+#@ <BFConfirm(x, y, message, defaultYes)>
+#@ V-1.0.2 (2026-04-04)
+#@
+#@ Yes/No confirmation dialog with button navigation at position ''x'' and ''y''.
+#@ The ''message'' is displayed above buttons and ''defaultYes'' determines
+#@ initially selected button. Returns ''true'' if Yes is confirmed (Enter on Yes
+#@ button or 'y'/'Y' key), ''false'' if No is confirmed (Enter on No button or
+#@ 'n'/'N' key), or ''err'' if ESC is pressed. Selected button shown with inverted
+#@ colors. Buttons displayed as [ Yes ] and [ No ].
+
+func BFConfirm(x, y, message, defaultYes)
+{
+	var selected = 1;
+
+	if not defaultYes { selected = 2; }
+
+	var running = true;
+	var result = err;
+	var buttonY = y + 2;
+	var yesButtonWidth = 7;
+
+	HideCursor();
+
+	BFDrawText(x, y, message);
+	BFDrawButton(x, buttonY, "Yes", selected == 1);
+	BFDrawButton(x + yesButtonWidth, buttonY, "No", selected == 2);
+
+	while running
+	{
+		var prevSelected = selected;
+		var key = getch();
+
+		if key == BFKEYENTER
+		{
+			if selected == 1 { result = true; }
+			else { result = false; }
+
+			running = false;
+		}
+		elseif key == BFKEYESC
+		{
+			result = err;
+			running = false;
+		}
+		elseif key == BFKEYLEFT
+		{
+			selected = 1;
+		}
+		elseif key == BFKEYRIGHT
+		{
+			selected = 2;
+		}
+		elseif type(key) == "bytes" and len(key) == 1 and (key[1] == 121 or key[1] == 89)
+		{
+			result = true;
+			running = false;
+		}
+		elseif type(key) == "bytes" and len(key) == 1 and (key[1] == 110 or key[1] == 78)
+		{
+			result = false;
+			running = false;
+		}
+
+		if running and selected != prevSelected
+		{
+			BFDrawButton(x, buttonY, "Yes", selected == 1);
+			BFDrawButton(x + yesButtonWidth, buttonY, "No", selected == 2);
+		}
+	}
+
+	ShowCursor();
+
+	return result;
+}
+
+#
+# boxflinger - slider.chh
+#
+
+#@ <BFSlider(x, y, width, label, value, min, max, stepSize)>
+#@ V-1.0.4 (2026-06-02)
+#@
+#@ Interactive slider with arrow keys for numeric input at position ''x'' and
+#@ ''y'' with slider bar ''width''. The ''label'' is displayed above slider,
+#@ ''value'' sets initial value, ''min'' and ''max'' define allowed range, and
+#@ ''stepSize'' is increment/decrement amount. Returns selected value when Enter
+#@ is pressed, or ''err'' if ESC is pressed, width less than 1, or stepSize is 0
+#@ or less. Visual representation uses [====----] style bracket notation. Value
+#@ automatically clamped to min-max range during adjustment.
+
+func _BFSliderDraw_(x, y, width, label, current, min, max, clearWidth)
+{
+	BFClearRegion(x, y, clearWidth, 2);
+	BFDrawText(x, y, label + ": " + str(int(current)));
+
+	var range = max - min;
+	var position = 0;
+
+	if range != 0 { position = (current - min) / range; }
+
+	var filledWidth = int(width * position);
+
+	CursorToXY(x, y + 1);
+
+	fwrite(BFPACKEDBRACKETLEFT, STDOUT);
+
+	for i = 1 to width
+	{
+		if i <= filledWidth { fwrite(BFPACKEDEQUALS, STDOUT); }
+		else { fwrite(BFPACKEDDASH, STDOUT); }
+	}
+
+	fwrite(BFPACKEDBRACKETRIGHT, STDOUT);
+}
+
+func BFSlider(x, y, width, label, value, min, max, stepSize)
+{
+	if width < 1 { return err; }
+
+	if stepSize <= 0 { return err; }
+
+	var current = value;
+	var running = true;
+
+	var result = err;
+
+	if current < min { current = min; }
+
+	if current > max { current = max; }
+
+	var maxLabelLen = lenv(label) + 2 + lenv(str(int(max)));
+	var minLabelLen = lenv(label) + 2 + lenv(str(int(min)));
+	var clearWidth = width + 2;
+
+	if maxLabelLen > clearWidth { clearWidth = maxLabelLen; }
+	if minLabelLen > clearWidth { clearWidth = minLabelLen; }
+
+	HideCursor();
+
+	_BFSliderDraw_(x, y, width, label, current, min, max, clearWidth);
+
+	while running
+	{
+		var prevCurrent = current;
+		var key = getch();
+
+		if key == BFKEYENTER
+		{
+			result = current;
+			running = false;
+		}
+		elseif key == BFKEYESC
+		{
+			result = err;
+			running = false;
+		}
+		elseif key == BFKEYLEFT
+		{
+			current = current - stepSize;
+
+			if current < min { current = min; }
+		}
+		elseif key == BFKEYRIGHT
+		{
+			current = current + stepSize;
+
+			if current > max { current = max; }
+		}
+		elseif key == BFKEYHOME
+		{
+			current = min;
+		}
+		elseif key == BFKEYEND
+		{
+			current = max;
+		}
+
+		if running and current != prevCurrent
+		{
+			_BFSliderDraw_(x, y, width, label, current, min, max, clearWidth);
+		}
+	}
+
+	ShowCursor();
+
+	return result;
+}
+
+#
+# boxflinger - keybindsbar.chh
+#
+
+#@ <BFKeybindsBar(x, y, width, rows)>
+#@ V-1.0.0 (2026-05-29)
+#@
+#@ Draws a keybinds bar at ''x'' and ''y'' spanning ''width'' columns and ''len(rows)''
+#@ lines. ''rows'' is a list of rows, each a list of ''[key, action]'' pairs drawn
+#@ centered on its line; an empty row leaves a blank padding line. Always returns
+#@ ''ok''.
+
+func _BFKeybindWidth_(key, action)
+{
+	return lenv(key) + 1 + lenv(action) + 3;
+}
+
+func _BFDrawKeybind_(x, y, key, action)
+{
+	SetAttribute(COLORBOLD);
+	BFDrawText(x, y, key);
+	SetAttribute(COLORRESET);
+
+	SetAttribute(COLORBLACK);
+	SetAttribute(COLORBGWHITE);
+
+	var actionX = x + lenv(key);
+
+	BFDrawText(actionX, y, " " + action + "   ");
+
+	return actionX + lenv(action) + 4;
+}
+
+func BFKeybindsBar(x, y, width, rows)
+{
+	SetAttribute(COLORBLACK);
+	SetAttribute(COLORBGWHITE);
+
+	var pad = BFPadText("", width, BFALIGNLEFT);
+
+	for r = 1 to len(rows) { BFDrawText(x, y + r - 1, pad); }
+
+	for r = 1 to len(rows)
+	{
+		var items = rows[r];
+		var rowY = y + r - 1;
+
+		var lineWidth = 0;
+
+		for i = 1 to len(items)
+		{
+			var item = items[i];
+			lineWidth = lineWidth + _BFKeybindWidth_(item[1], item[2]);
+		}
+
+		var xpos = x + int((width - lineWidth) / 2);
+
+		if xpos < x { xpos = x; }
+
+		for i = 1 to len(items)
+		{
+			var item = items[i];
+			xpos = _BFDrawKeybind_(xpos, rowY, item[1], item[2]);
+		}
+	}
+
+	SetAttribute(COLORRESET);
+
+	return ok;
+}
+
+#
+# boxflinger - dialogs.chh
+#
+
+#@ <BFShowMessage(region, dialogWidth, title, message, color)>
+#@ V-1.0.0 (2026-05-31)
+#@
+#@ Shows a message dialog centered within ''region'': ''[x, y, width, height]''.
+#@ The dialog is ''dialogWidth'' columns wide and auto-sizes its height from the
+#@ wrapped ''message'', clamped to the region. ''color'' is applied to each
+#@ message line. Dialog is dismissed by pressing any key. Always returns ''ok''.
+
+func BFShowMessage(region, dialogWidth, title, message, color)
+{
+	HideCursor();
+
+	var contentWidth = dialogWidth - 4;
+	var wrapped = BFWrapText(message, contentWidth);
+	var lineCount = len(wrapped);
+
+	var dialogHeight = lineCount + 5;
+	var maxHeight = region[4];
+
+	if dialogHeight > maxHeight
+	{
+		dialogHeight = maxHeight;
+		lineCount = dialogHeight - 5;
+
+		if lineCount < 0 { lineCount = 0; }
+	}
+
+	var origin = BFCenterRect(region, dialogWidth, dialogHeight);
+	var x = origin[1];
+	var y = origin[2];
+
+	BFClearRegion(x, y, dialogWidth, dialogHeight);
+	BFDrawFrame(x, y, dialogWidth, dialogHeight, title, BFBOXROUNDED);
+
+	var contentX = x + 2;
+
+	for i = 1 to lineCount
+	{
+		SetAttribute(color);
+		BFDrawText(contentX, y + 1 + i, BFClipText(wrapped[i], contentWidth));
+		SetAttribute(COLORRESET);
+	}
+
+	BFDrawText(contentX, y + dialogHeight - 2, "Press any key...");
+
+	getch();
+
+	ShowCursor();
+
+	return ok;
+}
+
+#@ <BFShowConfirm(region, dialogWidth, title, message, defaultYes)>
+#@ V-1.0.0 (2026-05-31)
+#@
+#@ Shows a Yes / No dialog centered within ''region'': ''[x, y, width, height]''.
+#@ The dialog is ''dialogWidth'' columns wide and auto-sizes its height from the
+#@ wrapped ''message'', clamped to the region. ''defaultYes'' selects the initial
+#@ button. Returns ''true'' on Yes, ''false'' on No, or ''err'' if ESC is pressed.
+
+func BFShowConfirm(region, dialogWidth, title, message, defaultYes)
+{
+	HideCursor();
+
+	var contentWidth = dialogWidth - 4;
+	var wrapped = BFWrapText(message, contentWidth);
+	var lineCount = len(wrapped);
+
+	var dialogHeight = lineCount + 5;
+	var maxHeight = region[4];
+
+	if dialogHeight > maxHeight
+	{
+		dialogHeight = maxHeight;
+		lineCount = dialogHeight - 5;
+
+		if lineCount < 0 { lineCount = 0; }
+	}
+
+	var origin = BFCenterRect(region, dialogWidth, dialogHeight);
+	var x = origin[1];
+	var y = origin[2];
+
+	BFClearRegion(x, y, dialogWidth, dialogHeight);
+	BFDrawFrame(x, y, dialogWidth, dialogHeight, title, BFBOXROUNDED);
+
+	var contentX = x + 2;
+
+	for i = 1 to lineCount
+	{
+		BFDrawText(contentX, y + 1 + i, BFClipText(wrapped[i], contentWidth));
+	}
+
+	# BFConfirm does Cursor hiding / showing internally, no need here
+
+	return BFConfirm(contentX, y + lineCount + 2, "", defaultYes);
+}
+
+#
+# boxflinger
+#
+
+load("libterm.chh");
+load("libhandles.chh");
+load("libprint.chh");
+load("libhttp.chh");
+
+# ---
+
+
+
+
