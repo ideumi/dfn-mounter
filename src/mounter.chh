@@ -27,6 +27,8 @@ func MounterMainLoop()
 			MounterRefreshDevices();
 			ClearScreen();
 
+			mounterSkipFullRedraw = false;
+
 			continue;
 		}
 
@@ -35,12 +37,9 @@ func MounterMainLoop()
 		MounterAdjustScroll();
 
 		var pageSize = GetVisibleDeviceCount();
-		var contentHeight = mounterScreenHeight - MounterBottomReserve() - 2;
-		var listWidth = mounterScreenWidth - 2;
 
-		MounterDrawHeader(2, 1, listWidth);
-		MounterDrawDeviceList(2, 2, listWidth, contentHeight);
-		MounterDrawBottom();
+		if mounterSkipFullRedraw { mounterSkipFullRedraw = false; }
+		else { MounterDrawScreen(); }
 
 		if not iserr(mounterWinsizeHandle)
 		{
@@ -93,11 +92,34 @@ func MounterMainLoop()
 		}
 		elseif key == BFKEYUP
 		{
+			var oldIndex = mounterSelectedIndex;
+			var oldOffset = mounterScrollOffset;
+
 			MoveSelection(-1);
+
+			# Repaint only the two changed rows when the list did not scroll.
+			if mounterScrollOffset == oldOffset
+			{
+				MounterRedrawDeviceRow(oldIndex);
+				MounterRedrawDeviceRow(mounterSelectedIndex);
+
+				mounterSkipFullRedraw = true;
+			}
 		}
 		elseif key == BFKEYDOWN
 		{
+			var oldIndex = mounterSelectedIndex;
+			var oldOffset = mounterScrollOffset;
+
 			MoveSelection(1);
+
+			if mounterScrollOffset == oldOffset
+			{
+				MounterRedrawDeviceRow(oldIndex);
+				MounterRedrawDeviceRow(mounterSelectedIndex);
+
+				mounterSkipFullRedraw = true;
+			}
 		}
 		elseif key == BFKEYPAGEUP
 		{

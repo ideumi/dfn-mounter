@@ -17,6 +17,20 @@ func MounterGetColumnWidths(width)
 	return [nameColWidth, fsColWidth, statusColWidth, sizeColWidth];
 }
 
+#@ <GetMounterListRegion()>
+#@ Returns the region of the device list: ''[x, headerY, listY, width, height]''.
+
+func GetMounterListRegion()
+{
+	var x = 2;
+	var headerY = 1;
+	var listY = 2;
+	var width = mounterScreenWidth - 2;
+	var height = mounterScreenHeight - MounterBottomReserve() - 2;
+
+	return [x, headerY, listY, width, height];
+}
+
 #@ <MounterDrawHeader(x, y, width)>
 #@ Draws the column header row.
 
@@ -40,6 +54,84 @@ func MounterDrawHeader(x, y, width)
 	SetAttribute(COLORRESET);
 }
 
+#@ <MounterDrawDeviceRow(x, baseY, width, nameColWidth, fsColWidth, statusColWidth, sizeColWidth, idx)>
+#@ Draws one device list row at position ''baseY''.
+
+func MounterDrawDeviceRow(x, baseY, width, nameColWidth, fsColWidth, statusColWidth, sizeColWidth, idx)
+{
+	var emptyRow = BFPadText("", width, BFALIGNLEFT);
+
+	if idx >= 1 and idx <= len(mounterDevices) and not IsDeviceEntry(mounterDevices[idx])
+	{
+		var sectionText = BFClipText("── " + mounterDevices[idx]["label"] + " ──", width);
+
+		sectionText = BFPadText(sectionText, width, BFALIGNLEFT);
+
+		SetAttribute(COLORBOLD);
+		BFDrawText(x, baseY, sectionText);
+		SetAttribute(COLORRESET);
+		BFDrawText(x, baseY + 1, emptyRow);
+	}
+	elseif idx >= 1 and idx <= len(mounterDevices)
+	{
+		var dev = mounterDevices[idx];
+		var displayName = DeviceDisplayName(dev);
+		var size = dev["size"];
+		var isSelected = idx == mounterSelectedIndex;
+
+		if isSelected
+		{
+			SetAttribute(COLORBLACK);
+			SetAttribute(COLORBOLD);
+			SetAttribute(COLORBGWHITE);
+		}
+		elseif IsMounted(dev)
+		{
+			SetAttribute(COLORBOLD);
+			SetAttribute(COLORCYAN);
+		}
+		elseif IsLuks(dev)
+		{
+			SetAttribute(COLORBOLD);
+			SetAttribute(COLORMAGENTA);
+		}
+
+		var status = DeviceStatusText(dev, mounterDevices);
+
+		# Optional transport tag in front of the name
+		var tag = "";
+
+		if dev["transport"] == "usb" { tag = "[USB] "; }
+
+		# Build columns
+		var nameText = "  " + tag + displayName;
+		nameText = BFClipText(nameText, nameColWidth);
+		nameText = BFPadText(nameText, nameColWidth, BFALIGNLEFT);
+
+		var fsText = BFClipText(dev["fstype"], fsColWidth);
+		fsText = BFPadText(fsText, fsColWidth, BFALIGNLEFT);
+
+		var sizeText = BFPadText(size, sizeColWidth, BFALIGNRIGHT);
+
+		var statusText = BFClipText(status, statusColWidth);
+		statusText = BFPadText(statusText, statusColWidth, BFALIGNRIGHT);
+
+		var rowText = nameText + " " + fsText + " " + statusText + " " + sizeText;
+
+		BFDrawText(x, baseY, rowText);
+
+		# Spacing
+		BFDrawText(x, baseY + 1, emptyRow);
+	}
+	else
+	{
+		BFDrawText(x, baseY, emptyRow);
+		BFDrawText(x, baseY + 1, emptyRow);
+	}
+
+	SetAttribute(COLORRESET);
+}
+
 #@ <MounterDrawDeviceList(x, y, width, height)>
 #@ Draws the device list.
 
@@ -52,83 +144,35 @@ func MounterDrawDeviceList(x, y, width, height)
 	var sizeColWidth = cols[4];
 
 	var visibleDevices = int(height / FILEROWHEIGHT);
-	var emptyRow = BFPadText("", width, BFALIGNLEFT);
 
 	for devRow = 1 to visibleDevices
 	{
 		var idx = mounterScrollOffset + devRow - 1;
 		var baseY = y + (devRow - 1) * FILEROWHEIGHT;
 
-		if idx >= 1 and idx <= len(mounterDevices) and not IsDeviceEntry(mounterDevices[idx])
-		{
-			var sectionText = BFClipText("── " + mounterDevices[idx]["label"] + " ──", width);
-
-			sectionText = BFPadText(sectionText, width, BFALIGNLEFT);
-
-			SetAttribute(COLORBOLD);
-			BFDrawText(x, baseY, sectionText);
-			SetAttribute(COLORRESET);
-			BFDrawText(x, baseY + 1, emptyRow);
-		}
-		elseif idx >= 1 and idx <= len(mounterDevices)
-		{
-			var dev = mounterDevices[idx];
-			var displayName = DeviceDisplayName(dev);
-			var size = dev["size"];
-			var isSelected = idx == mounterSelectedIndex;
-
-			if isSelected
-			{
-				SetAttribute(COLORBLACK);
-				SetAttribute(COLORBOLD);
-				SetAttribute(COLORBGWHITE);
-			}
-			elseif IsMounted(dev)
-			{
-				SetAttribute(COLORBOLD);
-				SetAttribute(COLORCYAN);
-			}
-			elseif IsLuks(dev)
-			{
-				SetAttribute(COLORBOLD);
-				SetAttribute(COLORMAGENTA);
-			}
-
-			var status = DeviceStatusText(dev, mounterDevices);
-
-			# Optional transport tag in front of the name
-			var tag = "";
-
-			if dev["transport"] == "usb" { tag = "[USB] "; }
-
-			# Build columns
-			var nameText = "  " + tag + displayName;
-			nameText = BFClipText(nameText, nameColWidth);
-			nameText = BFPadText(nameText, nameColWidth, BFALIGNLEFT);
-
-			var fsText = BFClipText(dev["fstype"], fsColWidth);
-			fsText = BFPadText(fsText, fsColWidth, BFALIGNLEFT);
-
-			var sizeText = BFPadText(size, sizeColWidth, BFALIGNRIGHT);
-
-			var statusText = BFClipText(status, statusColWidth);
-			statusText = BFPadText(statusText, statusColWidth, BFALIGNRIGHT);
-
-			var rowText = nameText + " " + fsText + " " + statusText + " " + sizeText;
-
-			BFDrawText(x, baseY, rowText);
-
-			# Spacing
-			BFDrawText(x, baseY + 1, emptyRow);
-		}
-		else
-		{
-			BFDrawText(x, baseY, emptyRow);
-			BFDrawText(x, baseY + 1, emptyRow);
-		}
-
-		SetAttribute(COLORRESET);
+		MounterDrawDeviceRow(x, baseY, width, nameColWidth, fsColWidth, statusColWidth, sizeColWidth, idx);
 	}
+}
+
+#@ <MounterRedrawDeviceRow(idx)>
+#@ Redraws the device row for entry ''idx'' in place if it is within the visible
+#@ viewport.
+
+func MounterRedrawDeviceRow(idx)
+{
+	var region = GetMounterListRegion();
+
+	var visibleDevices = int(region[5] / FILEROWHEIGHT);
+
+	var devRow = idx - mounterScrollOffset + 1;
+
+	if devRow < 1 or devRow > visibleDevices { return; }
+
+	var cols = MounterGetColumnWidths(region[4]);
+
+	var baseY = region[3] + (devRow - 1) * FILEROWHEIGHT;
+
+	MounterDrawDeviceRow(region[1], baseY, region[4], cols[1], cols[2], cols[3], cols[4], idx);
 }
 
 #@ <MounterBottomReserve()>
@@ -150,6 +194,18 @@ func MounterDrawBottom()
 {
 	if mounterShowKeybinds { MounterDrawKeybindsBar(); }
 	else { MounterDrawBottomHint(); }
+}
+
+#@ <MounterDrawScreen()>
+#@ Draws the full screen.
+
+func MounterDrawScreen()
+{
+	var region = GetMounterListRegion();
+
+	MounterDrawHeader(region[1], region[2], region[4]);
+	MounterDrawDeviceList(region[1], region[3], region[4], region[5]);
+	MounterDrawBottom();
 }
 
 #@ <MounterDrawBottomHint()>

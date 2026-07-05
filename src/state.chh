@@ -14,6 +14,8 @@ var mounterInDialog = false;
 
 var mounterShowKeybinds = false;
 
+var mounterSkipFullRedraw = false;
+
 #@ <SelectedDevice()>
 #@ Returns the currently selected device entry, or ''err'' if the current selection
 #@ is not valid. A valid selection is an in-range index pointing at a real device
@@ -154,9 +156,9 @@ func MounterUpdateScreenSize()
 
 func GetVisibleDeviceCount()
 {
-	var contentHeight = mounterScreenHeight - MounterBottomReserve() - 2;
+	var region = GetMounterListRegion();
 
-	return int(contentHeight / FILEROWHEIGHT);
+	return int(region[5] / FILEROWHEIGHT);
 }
 
 #@ <MounterAdjustScroll()>
@@ -280,11 +282,6 @@ func MounterWinChActor()
 
 		ClearScreen();
 
-		var contentHeight = mounterScreenHeight - MounterBottomReserve() - 2;
-		var listWidth = mounterScreenWidth - 2;
-
-		MounterDrawHeader(2, 1, listWidth);
-		MounterDrawDeviceList(2, 2, listWidth, contentHeight);
-		MounterDrawBottom();
+		MounterDrawScreen();
 	}
 }
