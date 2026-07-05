@@ -278,19 +278,30 @@ func SectionizedDevices(devices)
 		else { append(internal, d); }
 	}
 
-	var removableHeader = m[
-		"type": "section",
-		"label": "Removable"
-	];
+	# Only show a section header when that section is not empty.
+	var result = [];
 
-	var devicesHeader = m[
-		"type": "section",
-		"label": "Devices"
-	];
+	if len(removable) > 0
+	{
+		var removableHeader = m[
+			"type": "section",
+			"label": "Removable"
+		];
 
-	var result = [removableHeader] + removable + [devicesHeader] + internal;
+		result = result + [removableHeader] + removable;
+	}
 
-	if systemDisk != ""
+	if len(internal) > 0
+	{
+		var devicesHeader = m[
+			"type": "section",
+			"label": "Devices"
+		];
+
+		result = result + [devicesHeader] + internal;
+	}
+
+	if len(system) > 0
 	{
 		var systemHeader = m[
 			"type": "section",
