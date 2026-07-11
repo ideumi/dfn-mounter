@@ -21,7 +21,7 @@ This was originally meant to be an integrated component of depthfinder itself, h
 - LVM logical volume support (with LUKS-on-LVM)
 - Eject / power-off removable devices
 - Extensive safety guards
-- Super small at only ~1000 LOC with ~1800 total lines
+- Super small at only ~1100 LOC with ~1900 total lines
 
 ## Getting dfn-mounter
 
@@ -71,7 +71,7 @@ sudo make uninstall
 
 ## Security
 
-dfn-mounter can **never** see your LUKS passphrase and thus cannot save it, e.g. for "convenience", as this would be a security risk. Unlocking is entirely done via `udisksctl`, which reads your passphrase directly. See the implementation of `UnlockLuks(dev)` in [devices.chh](src/devices.chh). Your passphrase must be entered every time. This is intentional.
+dfn-mounter can **never** see your LUKS passphrase and thus cannot save it, e.g. for "convenience", as this would be a security risk. Unlocking is entirely done via `udisksctl`, which reads your passphrase directly. See the implementation of `UnlockLuks(dev)` in [udisks.chh](src/udisks.chh). Your passphrase must be entered every time. This is intentional.
 
 ## Known Issues
 

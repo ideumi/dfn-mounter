@@ -1,0 +1,24 @@
+#!/usr/bin/chippy
+#
+# dfn-mounter - util.chh
+#
+
+#@ <ShellEscape(s)>
+#@ Escapes a string for safe use in shell commands.
+
+func ShellEscape(s)
+{
+	var escaped = replace(s, "'", "'\\''");
+
+	return "'" + escaped + "'";
+}
+
+#@ <DefaultIfEmpty(value, fallback)>
+#@ Returns ''value'', or ''fallback'' when ''value == ""''.
+
+func DefaultIfEmpty(value, fallback)
+{
+	if value == "" { return fallback; }
+
+	return value;
+}

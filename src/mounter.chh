@@ -3,6 +3,106 @@
 # dfn-mounter - mounter.chh
 #
 
+#@ <MounterUpdateScreenSize()>
+#@ Reads the current terminal size into the state.
+
+func MounterUpdateScreenSize()
+{
+	var size = winsize();
+
+	if iserr(size) { return; }
+
+	mounterScreenHeight = size["rows"];
+	mounterScreenWidth = size["columns"];
+}
+
+#@ <MounterCurrentState()>
+#@ Packs the relevant rendering state values into a single map for MounterWinChActor().
+
+func MounterCurrentState()
+{
+	return m[
+		"devices": mounterDevices,
+		"selectedIndex": mounterSelectedIndex,
+		"scrollOffset": mounterScrollOffset,
+		"showKeybinds": mounterShowKeybinds,
+		"inDialog": mounterInDialog
+	];
+}
+
+#@ <EnterMounterDialog()>
+#@ Sets the dialog flag and tells the winsize actor to suppress repaints until
+#@ the dialog returns.
+
+func EnterMounterDialog()
+{
+	mounterInDialog = true;
+
+	if not iserr(mounterWinsizeHandle)
+	{
+		send(mounterWinsizeHandle, MounterCurrentState());
+	}
+}
+
+#@ <ExitMounterDialog()>
+#@ Clears the dialog flag.
+
+func ExitMounterDialog()
+{
+	mounterInDialog = false;
+
+	if not iserr(mounterWinsizeHandle)
+	{
+		send(mounterWinsizeHandle, MounterCurrentState());
+	}
+}
+
+#@ <MounterWinChActor()>
+#@ Actor for detecting and acting :D on window size changes
+
+func MounterWinChActor()
+{
+	sigcatch([SIGWINCH]);
+
+	var state = m[];
+
+	while true
+	{
+		signal();
+
+		var msgs = receive(false);
+
+		if len(msgs) > 0 { state = msgs[len(msgs)]; }
+
+		if len(state) == 0 { continue; }
+
+		if state["inDialog"] { continue; }
+
+		var size = winsize();
+
+		if iserr(size) { continue; }
+
+		mounterScreenHeight = size["rows"];
+		mounterScreenWidth = size["columns"];
+
+		if mounterScreenWidth < MINTERMWIDTH or mounterScreenHeight < MINTERMHEIGHT
+		{
+			continue;
+		}
+
+		mounterDevices = state["devices"];
+		mounterSelectedIndex = state["selectedIndex"];
+		mounterScrollOffset = state["scrollOffset"];
+		mounterShowKeybinds = state["showKeybinds"];
+
+		MounterAdjustScroll();
+
+		ClearScreen();
+
+		MounterDrawScreen();
+	}
+}
+
 #@ <MounterMainLoop()>
 #@ Mounter event loop.
 
@@ -92,34 +192,11 @@ func MounterMainLoop()
 		}
 		elseif key == BFKEYUP
 		{
-			var oldIndex = mounterSelectedIndex;
-			var oldOffset = mounterScrollOffset;
-
-			MoveSelection(-1);
-
-			# Repaint only the two changed rows when the list did not scroll.
-			if mounterScrollOffset == oldOffset
-			{
-				MounterRedrawDeviceRow(oldIndex);
-				MounterRedrawDeviceRow(mounterSelectedIndex);
-
-				mounterSkipFullRedraw = true;
-			}
+			MoveSelectionRedraw(-1);
 		}
 		elseif key == BFKEYDOWN
 		{
-			var oldIndex = mounterSelectedIndex;
-			var oldOffset = mounterScrollOffset;
-
-			MoveSelection(1);
-
-			if mounterScrollOffset == oldOffset
-			{
-				MounterRedrawDeviceRow(oldIndex);
-				MounterRedrawDeviceRow(mounterSelectedIndex);
-
-				mounterSkipFullRedraw = true;
-			}
+			MoveSelectionRedraw(1);
 		}
 		elseif key == BFKEYPAGEUP
 		{

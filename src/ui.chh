@@ -3,6 +3,121 @@
 # dfn-mounter - ui.chh
 #
 
+#@ <DeviceStatusText(dev, devices)>
+#@ Returns the status string used in the STATUS column and the device info dialog.
+
+func DeviceStatusText(dev, devices)
+{
+	if IsLuks(dev)
+	{
+		if IsLuksUnlocked(dev, devices) { return "[LUKS unlocked]"; }
+
+		return "[LUKS locked]";
+	}
+
+	if IsSwap(dev) { return "[swap]"; }
+
+	if IsMounted(dev) { return dev["mountpoint"]; }
+
+	if dev["fstype"] == "LVM2_member" { return "[LVM]"; }
+
+	return "[unmounted]";
+}
+
+#@ <SerialTail(serial)>
+#@ Returns the last 6 characters of the ''serial'' number, prefixed with "...".
+#@ Returns the whole serial if it is 6 characters or shorter.
+
+func SerialTail(serial)
+{
+	if serial == "" { return ""; }
+
+	var serialLen = len(serial);
+
+	if serialLen <= 6 { return serial; }
+
+	return "..." + Right(serial, 6);
+}
+
+#@ <DiskShortLabel(dev)>
+#@ Returns a label for the parent disk: ''"<model> (...SerialTail(serial))"'' when
+#@ both are available, otherwise the disk name path.
+
+func DiskShortLabel(dev)
+{
+	var model = dev["model"];
+	var serial = dev["serial"];
+	var disk = dev["disk"];
+
+	var label = "";
+
+	if model != "" { label = model; }
+	else { label = "/dev/" + disk; }
+
+	var tail = SerialTail(serial);
+
+	if tail != "" { label = label + " (" + tail + ")"; }
+
+	return label;
+}
+
+#@ <DeviceTypeDescription(dev)>
+#@ Returns a description of a ''dev''ice's role.
+
+func DeviceTypeDescription(dev)
+{
+	var devType = dev["type"];
+	var fstype = dev["fstype"];
+
+	if devType == "part" and fstype == "crypto_LUKS"
+	{
+		return "LUKS container";
+	}
+	if devType == "part" { return "Partition"; }
+	if devType == "crypt" and fstype == "LVM2_member"
+	{
+		return "LUKS volume (LVM PV)";
+	}
+	if devType == "crypt" { return "LUKS volume"; }
+	if devType == "lvm" { return "LVM logical volume"; }
+
+	return devType;
+}
+
+#@ <DeviceDisplayName(dev)>
+#@ Returns the display name for a ''dev''ice.
+
+func DeviceDisplayName(dev)
+{
+	var label = dev["label"];
+	var model = dev["model"];
+	var name = dev["name"];
+	var size = dev["size"];
+	var serial = dev["serial"];
+
+	var tailPart = "";
+
+	# Last 3 chars of serial
+	if serial != ""
+	{
+		var serialLen = len(serial);
+		var tail = serial;
+
+		if serialLen > 3 { tail = Right(serial, 3); }
+
+		tailPart = " [" + tail + "]";
+	}
+
+	# No label?
+	if label != "" { return label + tailPart + " (" + name + ")"; }
+
+	# Fall back to model + size
+	if model != "" { return size + " " + model + tailPart + " (" + name + ")"; }
+
+	# Fall back to name + size
+	return name + tailPart + " (" + size + ")";
+}
+
 #@ <MounterGetColumnWidths(width)>
 #@ Returns column widths as a list:
 #@ ''[nameColWidth, fsColWidth, statusColWidth, sizeColWidth]''.

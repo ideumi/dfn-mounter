@@ -16,6 +16,24 @@ func GetMounterRegion(screenWidth, screenHeight)
 	return [x, y, width, height];
 }
 
+#@ <CloseMounterDialog()>
+#@ Hides the cursor and clears the in-dialog flag.
+
+func CloseMounterDialog()
+{
+	HideCursor();
+	ExitMounterDialog();
+}
+
+#@ <DrawInfoRow(contentX, row, labelWidth, valueWidth, label, value)>
+#@ Draws one label / value row of the device info dialog.
+
+func DrawInfoRow(contentX, row, labelWidth, valueWidth, label, value)
+{
+	BFDrawText(contentX, row,
+		BFPadText(label, labelWidth, BFALIGNLEFT) + BFClipText(value, valueWidth));
+}
+
 #@ <MounterShowDebug()>
 #@ Renders a small debug dialog where versions can be checked.
 
@@ -29,8 +47,7 @@ func MounterShowDebug()
 		"This is " + PROGRAMNAME + " V-" + VERSION + "\nusing boxflinger V-" +
 		BFVERSION + "\n\nCopyright (c) 2026 ideumi", COLORRESET);
 
-	HideCursor();
-	ExitMounterDialog();
+	CloseMounterDialog();
 }
 
 #@ <MounterShowConfirm(message)>
@@ -44,8 +61,7 @@ func MounterShowConfirm(message)
 
 	var result = BFShowConfirm(region, DIALOGWIDTH, "Confirm", message, true);
 
-	HideCursor();
-	ExitMounterDialog();
+	CloseMounterDialog();
 
 	return result;
 }
@@ -75,23 +91,20 @@ func MounterShowDeviceInfo(dev)
 	var row = y + 1;
 
 	# Name
-	BFDrawText(contentX, row, BFPadText("Name:", labelWidth, BFALIGNLEFT) + BFClipText(DeviceDisplayName(dev), valueWidth));
+	DrawInfoRow(contentX, row, labelWidth, valueWidth, "Name:", DeviceDisplayName(dev));
 	row = row + 1;
 
 	# Path
-	BFDrawText(contentX, row, BFPadText("Path:", labelWidth, BFALIGNLEFT) + BFClipText(DevicePath(dev), valueWidth));
+	DrawInfoRow(contentX, row, labelWidth, valueWidth, "Path:", DevicePath(dev));
 	row = row + 1;
 
 	# Type
-	BFDrawText(contentX, row, BFPadText("Type:", labelWidth, BFALIGNLEFT) + BFClipText(DeviceTypeDescription(dev), valueWidth));
+	DrawInfoRow(contentX, row, labelWidth, valueWidth, "Type:", DeviceTypeDescription(dev));
 	row = row + 1;
 
 	# Filesystem
-	var fstype = dev["fstype"];
-
-	if fstype == "" { fstype = "(none)"; }
-
-	BFDrawText(contentX, row, BFPadText("FS:", labelWidth, BFALIGNLEFT) + BFClipText(fstype, valueWidth));
+	DrawInfoRow(contentX, row, labelWidth, valueWidth, "FS:",
+		DefaultIfEmpty(dev["fstype"], "(none)"));
 	row = row + 1;
 
 	# Size
@@ -99,23 +112,18 @@ func MounterShowDeviceInfo(dev)
 	row = row + 1;
 
 	# Label
-	var label = dev["label"];
-
-	if label == "" { label = "(none)"; }
-
-	BFDrawText(contentX, row, BFPadText("Label:", labelWidth, BFALIGNLEFT) + BFClipText(label, valueWidth));
+	DrawInfoRow(contentX, row, labelWidth, valueWidth, "Label:",
+		DefaultIfEmpty(dev["label"], "(none)"));
 	row = row + 1;
 
 	# UUID
-	var uuid = dev["uuid"];
-
-	if uuid == "" { uuid = "(none)"; }
-
-	BFDrawText(contentX, row, BFPadText("UUID:", labelWidth, BFALIGNLEFT) + BFClipText(uuid, valueWidth));
+	DrawInfoRow(contentX, row, labelWidth, valueWidth, "UUID:",
+		DefaultIfEmpty(dev["uuid"], "(none)"));
 	row = row + 1;
 
 	# Status
-	BFDrawText(contentX, row, BFPadText("Status:", labelWidth, BFALIGNLEFT) + BFClipText(DeviceStatusText(dev, mounterDevices), valueWidth));
+	DrawInfoRow(contentX, row, labelWidth, valueWidth, "Status:",
+		DeviceStatusText(dev, mounterDevices));
 	row = row + 1;
 
 	# Drive
@@ -133,23 +141,19 @@ func MounterShowDeviceInfo(dev)
 		driveStr = driveStr + " [" + join(tagList, ", ") + "]";
 	}
 
-	BFDrawText(contentX, row, BFPadText("Drive:", labelWidth, BFALIGNLEFT) + BFClipText(driveStr, valueWidth));
+	DrawInfoRow(contentX, row, labelWidth, valueWidth, "Drive:", driveStr);
 	row = row + 1;
 
 	# Serial
-	var serial = dev["serial"];
-
-	if serial == "" { serial = "(unknown)"; }
-
-	BFDrawText(contentX, row, BFPadText("Serial:", labelWidth, BFALIGNLEFT) + BFClipText(serial, valueWidth));
+	DrawInfoRow(contentX, row, labelWidth, valueWidth, "Serial:",
+		DefaultIfEmpty(dev["serial"], "(unknown)"));
 	row = row + 2;
 
 	BFDrawText(contentX, row, "Press any key...");
 
 	getch();
 
-	HideCursor();
-	ExitMounterDialog();
+	CloseMounterDialog();
 }
 
 #@ <MounterShowError(message)>
@@ -163,6 +167,5 @@ func MounterShowError(message)
 
 	BFShowMessage(region, DIALOGWIDTH, "Error", message, COLORRED);
 
-	HideCursor();
-	ExitMounterDialog();
+	CloseMounterDialog();
 }
