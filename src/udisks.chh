@@ -1,0 +1,110 @@
+#!/usr/bin/chippy
+#
+# dfn-mounter - udisks.chh
+#
+
+#@ <RunWithError(command)>
+#@ Runs ''command''. Returns ''ok'' on success, the captured stdout+stderr on
+#@ failure, or ''err'' if the subprocess could not be started.
+
+func RunWithError(command)
+{
+	var result = Run(command + " 2>&1");
+
+	if iserr(result) { return err; }
+
+	var exitcode = result[1];
+	var output = Trim(result[2]);
+
+	if not iserr(exitcode) and exitcode == 0 { return ok; }
+
+	if output != "" { return output; }
+
+	if iserr(exitcode) { return "Command failed"; }
+
+	return "Command failed (exit " + str(exitcode) + ")";
+}
+
+#@ <UdisksAction(dev, action)>
+#@ Runs a udisksctl ''action'' on ''dev''ice by path. Returns ''ok'' on success,
+#@ an error message string on failure, or ''err'' if udisksctl could not start.
+
+func UdisksAction(dev, action)
+{
+	var path = DevicePath(dev);
+
+	return RunWithError(UDISKSCTLPATH + " " + action + " -b " + ShellEscape(path));
+}
+
+#@ <MountDevice(dev)>
+#@ Mounts a ''dev''ice using udisksctl. Returns ''ok'' or error message string.
+
+func MountDevice(dev)
+{
+	return UdisksAction(dev, "mount");
+}
+
+#@ <UnmountDevice(dev)>
+#@ Unmounts a ''dev''ice using udisksctl. Returns ''ok'' or error message string.
+
+func UnmountDevice(dev)
+{
+	return UdisksAction(dev, "unmount");
+}
+
+#@ <UnlockLuks(dev)>
+#@ Unlocks a LUKS ''dev''ice using udisksctl. This temporarily exits the TUI to
+#@ let udisksctl handle passphrase input itself, so we can't capture anything and
+#@ everything gets moved around safely with no leaks.
+
+func UnlockLuks(dev)
+{
+	EnterMounterDialog();
+
+	var path = DevicePath(dev);
+
+	ShowCursor();
+	ClearScreen();
+	CursorTo(1, 1);
+
+	Println("Unlocking " + DeviceDisplayName(dev) + ":");
+
+	var cmd = UDISKSCTLPATH + " unlock -b " + ShellEscape(path) + TTYREDIRECT;
+
+	var success = isok(RunCheck(cmd));
+
+	if not success
+	{
+		Println("");
+		Print("Unlock failed. Press any key to continue.");
+
+		getch();
+	}
+
+	HideCursor();
+	ClearScreen();
+	ExitMounterDialog();
+
+	if success { return ok; }
+
+	return err;
+}
+
+#@ <LockLuks(dev)>
+#@ Locks a LUKS ''dev''ice using udisksctl. Returns ''ok'' or error message string.
+
+func LockLuks(dev)
+{
+	return UdisksAction(dev, "lock");
+}
+
+#@ <EjectDevice(dev)>
+#@ Ejects a ''dev''ice by powering off its parent disk. Returns ''ok'' or error message
+#@ string.
+
+func EjectDevice(dev)
+{
+	var disk = dev["disk"];
+
+	return RunWithError(UDISKSCTLPATH + " power-off -b " + ShellEscape("/dev/" + disk));
+}
