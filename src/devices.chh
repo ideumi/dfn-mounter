@@ -63,9 +63,11 @@ func ResolveDisk(name, parentMap)
 
 	for i = 1 to MAXPARENTDEPTH
 	{
+		if not has(parentMap, current) { return current; }
+
 		var parent = parentMap[current];
 
-		if iserr(parent) or parent == "" { return current; }
+		if parent == "" { return current; }
 
 		current = parent;
 	}
@@ -135,9 +137,9 @@ func LoadDevices()
 
 		if pkname != ""
 		{
-			var resolvedParent = knameToName[pkname];
+			var resolvedParent = pkname;
 
-			if iserr(resolvedParent) { resolvedParent = pkname; }
+			if has(knameToName, pkname) { resolvedParent = knameToName[pkname]; }
 
 			parentMap[name] = resolvedParent;
 		}
@@ -176,9 +178,9 @@ func LoadDevices()
 		var mountpoint = ParsePairValue(line, "MOUNTPOINT");
 		var pkname = ParsePairValue(line, "PKNAME");
 
-		var parent = parentMap[name];
+		var parent = "";
 
-		if iserr(parent) { parent = ""; }
+		if has(parentMap, name) { parent = parentMap[name]; }
 
 		# Resolve parent-disk attributes
 		var disk = ResolveDisk(name, parentMap);
@@ -187,10 +189,10 @@ func LoadDevices()
 		var removable = false;
 		var transport = "";
 
-		var attrs = diskAttrs[disk];
-
-		if not iserr(attrs)
+		if has(diskAttrs, disk)
 		{
+			var attrs = diskAttrs[disk];
+
 			model = attrs["model"];
 			serial = attrs["serial"];
 			removable = attrs["removable"];
@@ -225,11 +227,9 @@ func LoadDevices()
 
 func IsDeviceEntry(entry)
 {
-	var t = entry["type"];
+	if not has(entry, "type") { return false; }
 
-	if iserr(t) { return false; }
-
-	return t != "section";
+	return entry["type"] != "section";
 }
 
 #@ <SectionizedDevices(devices)>

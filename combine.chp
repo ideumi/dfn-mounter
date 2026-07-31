@@ -39,6 +39,8 @@ var External = [];
 
 # Options
 
-var StripComments = false;
-var StripWhitespace = false;
+var Compile = true;
 var AddShebang = true;
+
+var StripComments = true;
+var StripWhitespace = true;
