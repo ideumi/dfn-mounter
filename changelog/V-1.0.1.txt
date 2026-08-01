@@ -3,5 +3,3 @@ What's New:
 	- section headers are now only displayed when they are not empty
 	- selective redrawing of device list rows
 	- some refactoring/cleanups in the ui code
-
-c4eecef8ff57d1ecd9cda55c05917245b8611bc1223eb5e275477e5449e9f7fa  dfn-mounter
