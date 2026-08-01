@@ -1,0 +1,5 @@
+What's New:
+
+	- section headers are now only displayed when they are not empty
+	- selective redrawing of device list rows
+	- some refactoring/cleanups in the ui code
