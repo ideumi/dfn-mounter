@@ -172,6 +172,10 @@ func MounterMainLoop()
 				{
 					ActionMountSelected();
 				}
+				else
+				{
+					ActionOpenInDfn();
+				}
 			}
 		}
 		elseif key == BFKEYLEFT

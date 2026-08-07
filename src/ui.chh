@@ -346,7 +346,7 @@ func MounterDrawKeybindsBar()
 	append(rows, [
 			["↑↓", "Navigate"],
 			["←", "Unmount/Lock"],
-			["→", "Mount/Unlock"],
+			["→", "Mount/Unlock/Open"],
 			["e", "Eject"],
 			["i", "Info"],
 			["r", "Refresh"],

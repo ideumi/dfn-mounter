@@ -133,6 +133,22 @@ func ActionEjectSelected()
 	}
 }
 
+#@ <ActionOpenInDfn()>
+#@ Replaces the dfn-mounter process with depthfinder launched at the selected
+#@ device's mount point.
+
+func ActionOpenInDfn()
+{
+	var dev = SelectedDevice();
+
+	if iserr(dev) { return; }
+	if not IsMounted(dev) { return; }
+
+	MounterCleanup();
+
+	exec([DFNPATH, dev["mountpoint"]]);
+}
+
 #@ <ActionShowInfoSelected()>
 #@ Opens the device info dialog for the selected device.
 

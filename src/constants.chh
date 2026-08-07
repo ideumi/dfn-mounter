@@ -8,7 +8,7 @@
 #@ <VERSION>
 #@ Program version string
 
-var VERSION = "1.0.3";
+var VERSION = "1.0.4";
 
 #@ <PROGRAMNAME>
 #@ Program display name
@@ -60,6 +60,11 @@ var LSBLKPATH = "/usr/bin/lsblk";
 #@ Path to udisksctl
 
 var UDISKSCTLPATH = "/usr/bin/udisksctl";
+
+#@ <DFNPATH>
+#@ Path to depthfinder
+
+var DFNPATH = "/usr/bin/dfn";
 
 #@ <LSBLKCOLUMNS>
 #@ Columns for lsblk -Pno
