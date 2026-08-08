@@ -53,8 +53,7 @@ func UnlockLuks(dev)
 }
 
 #@ <EjectDisk(disk)>
-#@ Ejects a ''disk'' by powering it off. Returns ''ok'' or error message
-#@ string.
+#@ Ejects a ''disk'' by powering it off. Returns ''ok'' or error message string.
 
 func EjectDisk(disk)
 {

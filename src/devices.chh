@@ -451,8 +451,8 @@ func IsMountable(dev)
 }
 
 #@ <IsLuksCryptChildMounted(dev, devices)>
-#@ Returns ''true'' if the unlocked LUKS ''dev''ice has a crypt child that is currently
-#@ mounted.
+#@ Returns ''true'' if the unlocked LUKS ''dev''ice has a crypt child that is
+#@ currently mounted.
 
 func IsLuksCryptChildMounted(dev, devices)
 {
@@ -499,8 +499,8 @@ func DevicePath(dev)
 	var name = dev["name"];
 	var devType = dev["type"];
 
-	# crypt and lvm devices resolve under /dev/mapper/ since they are device mapper
-	# nodes
+	# crypt and lvm devices resolve under /dev/mapper/ since they are device
+	# mapper nodes
 	if devType == "crypt" or devType == "lvm" { return "/dev/mapper/" + name; }
 
 	return "/dev/" + name;

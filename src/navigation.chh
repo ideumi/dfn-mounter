@@ -148,8 +148,9 @@ func MoveSelection(delta)
 }
 
 #@ <MoveSelectionRedraw(delta)>
-#@ Moves the selection by ''delta'' and repaints only the two changed rows when the
-#@ list did not scroll, in which case the main loop is told to skip its full redraw.
+#@ Moves the selection by ''delta'' and repaints only the two changed rows when
+#@ the list did not scroll, in which case the main loop is told to skip its full
+#@ redraw.
 
 func MoveSelectionRedraw(delta)
 {

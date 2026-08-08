@@ -40,8 +40,8 @@ func SerialTail(serial)
 }
 
 #@ <DiskShortLabel(dev)>
-#@ Returns a label for the parent disk: ''"<model> (...SerialTail(serial))"'' when
-#@ both are available, otherwise the disk name path.
+#@ Returns a label for the parent disk: ''"<model> (...SerialTail(serial))"''
+#@ when both are available, otherwise the disk name path.
 
 func DiskShortLabel(dev)
 {

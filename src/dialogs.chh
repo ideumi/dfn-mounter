@@ -4,8 +4,8 @@
 #
 
 #@ <EnterMounterDialog()>
-#@ Sets the in-dialog flag and tells the winsize actor to suppress repaints
-#@ until the dialog returns.
+#@ Sets the in-dialog flag and tells the winsize actor to suppress repaints until
+#q the dialog returns.
 
 func EnterMounterDialog()
 {
