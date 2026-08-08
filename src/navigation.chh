@@ -3,37 +3,19 @@
 # dfn-mounter - navigation.chh
 #
 
-#@ <SelectedDevice()>
-#@ Returns the currently selected device entry, or ''err'' if the current selection
-#@ is not valid. A valid selection is an in-range index pointing at a device and
-#@ not a section header.
+#@ <SnapToDisk(start, direction)>
+#@ Returns the nearest sidebar index that points at a disk and not a section
+#@ header.
 
-func SelectedDevice()
+func SnapToDisk(start, direction)
 {
-	if mounterSelectedIndex < 1 or mounterSelectedIndex > len(mounterDevices)
-	{
-		return err;
-	}
-
-	var dev = mounterDevices[mounterSelectedIndex];
-
-	if not IsDeviceEntry(dev) { return err; }
-
-	return dev;
-}
-
-#@ <SnapToDevice(start, direction)>
-#@ Returns the nearest index that points at a device and not a section header.
-
-func SnapToDevice(start, direction)
-{
-	if len(mounterDevices) == 0 { return 1; }
+	if len(mounterDisks) == 0 { return 1; }
 
 	var idx = start;
 
-	while idx >= 1 and idx <= len(mounterDevices)
+	while idx >= 1 and idx <= len(mounterDisks)
 	{
-		if IsDeviceEntry(mounterDevices[idx]) { return idx; }
+		if IsDeviceEntry(mounterDisks[idx]) { return idx; }
 
 		idx = idx + direction;
 	}
@@ -42,9 +24,9 @@ func SnapToDevice(start, direction)
 
 	idx = start;
 
-	while idx >= 1 and idx <= len(mounterDevices)
+	while idx >= 1 and idx <= len(mounterDisks)
 	{
-		if IsDeviceEntry(mounterDevices[idx]) { return idx; }
+		if IsDeviceEntry(mounterDisks[idx]) { return idx; }
 
 		idx = idx + opposite;
 	}
@@ -52,23 +34,115 @@ func SnapToDevice(start, direction)
 	return start;
 }
 
-#@ <MoveSelection(delta)>
-#@ Moves the selection by ''delta''.
+#@ <MounterAdjustDiskScroll()>
+#@ Adjusts the sidebar scroll offset to keep the selected disk visible.
 
-func MoveSelection(delta)
+func MounterAdjustDiskScroll()
 {
-	if len(mounterDevices) == 0 { return; }
+	if mounterDiskScrollOffset < 1 { mounterDiskScrollOffset = 1; }
 
-	var newIdx = mounterSelectedIndex + delta;
+	if mounterSelectedDisk < mounterDiskScrollOffset
+	{
+		mounterDiskScrollOffset = mounterSelectedDisk;
+	}
+
+	while mounterSelectedDisk > MounterLastDrawableDisk(mounterDiskScrollOffset)
+		and mounterDiskScrollOffset < len(mounterDisks)
+	{
+		mounterDiskScrollOffset = mounterDiskScrollOffset + 1;
+	}
+
+	# Avoid empty rows below the last disk when disks fit the viewport.
+	while mounterDiskScrollOffset > 1
+		and MounterLastDrawableDisk(mounterDiskScrollOffset - 1) >= len(mounterDisks)
+	{
+		mounterDiskScrollOffset = mounterDiskScrollOffset - 1;
+	}
+}
+
+#@ <MoveDiskSelection(delta)>
+#@ Moves the sidebar selection by ''delta''.
+
+func MoveDiskSelection(delta)
+{
+	if len(mounterDisks) == 0 { return; }
+
+	var newIdx = mounterSelectedDisk + delta;
 
 	if newIdx < 1 { newIdx = 1; }
-	if newIdx > len(mounterDevices) { newIdx = len(mounterDevices); }
+	if newIdx > len(mounterDisks) { newIdx = len(mounterDisks); }
 
 	var direction = 1;
 
 	if delta < 0 { direction = -1; }
 
-	mounterSelectedIndex = SnapToDevice(newIdx, direction);
+	mounterSelectedDisk = SnapToDisk(newIdx, direction);
+
+	MounterAdjustDiskScroll();
+}
+
+#@ <NavigateToDisk(disk)>
+#@ Makes ''disk'' the active one and loads its volumes into the volume list.
+
+func NavigateToDisk(disk)
+{
+	mounterActiveDisk = disk["name"];
+	mounterVolumes = VolumesForDisk(mounterDevices, mounterActiveDisk);
+
+	mounterSelectedIndex = 1;
+	mounterScrollOffset = 1;
+
+	MounterAdjustScroll();
+}
+
+#@ <GetVisibleVolumeCount()>
+#@ Returns how many volume rows can be displayed at once.
+
+func GetVisibleVolumeCount()
+{
+	var region = GetMounterListRegion(mounterScreenWidth, mounterScreenHeight);
+
+	return int(region[5] / VOLUMEROWHEIGHT);
+}
+
+#@ <MounterAdjustScroll()>
+#@ Adjusts scroll offset to keep selection visible.
+
+func MounterAdjustScroll()
+{
+	var visibleVolumes = GetVisibleVolumeCount();
+
+	if mounterSelectedIndex < mounterScrollOffset
+	{
+		mounterScrollOffset = mounterSelectedIndex;
+	}
+
+	if mounterSelectedIndex >= mounterScrollOffset + visibleVolumes
+	{
+		mounterScrollOffset = mounterSelectedIndex - visibleVolumes + 1;
+	}
+
+	# Avoid empty rows below the last volume when volumes fit the viewport.
+	var maxOffset = len(mounterVolumes) - visibleVolumes + 1;
+
+	if maxOffset < 1 { maxOffset = 1; }
+	if mounterScrollOffset > maxOffset { mounterScrollOffset = maxOffset; }
+	if mounterScrollOffset < 1 { mounterScrollOffset = 1; }
+}
+
+#@ <MoveSelection(delta)>
+#@ Moves the selection by ''delta''.
+
+func MoveSelection(delta)
+{
+	if len(mounterVolumes) == 0 { return; }
+
+	var newIdx = mounterSelectedIndex + delta;
+
+	if newIdx < 1 { newIdx = 1; }
+	if newIdx > len(mounterVolumes) { newIdx = len(mounterVolumes); }
+
+	mounterSelectedIndex = newIdx;
 
 	MounterAdjustScroll();
 }
@@ -84,108 +158,61 @@ func MoveSelectionRedraw(delta)
 
 	MoveSelection(delta);
 
-	# Repaint only the two changed rows when the list did not scroll.
+	# Repaint only the title bar and the two changed rows when the list did not
+	# scroll.
 	if mounterScrollOffset == oldOffset
 	{
-		MounterRedrawDeviceRow(oldIndex);
-		MounterRedrawDeviceRow(mounterSelectedIndex);
+		var panel = GetMounterRegion(mounterScreenWidth, mounterScreenHeight);
+
+		MounterDrawTitleBar(panel[1], panel[2], panel[3]);
+		MounterRedrawVolumeRow(oldIndex);
+		MounterRedrawVolumeRow(mounterSelectedIndex);
 
 		mounterSkipFullRedraw = true;
 	}
 }
 
 #@ <MounterRefreshDevices()>
-#@ Reloads the device list.
+#@ Reloads the device list, rebuilds the sidebar and the volume list, and keeps
+#@ both selections on the same entries where they still exist.
 
 func MounterRefreshDevices()
 {
-	# Remember the selected device by name so the cursor follows it even when
-	# the list changes.
-	var prevName = "";
-	var prevSel = SelectedDevice();
+	# Remember both selections by name so the cursors follow them even when the
+	# lists change.
+	var prevDisk = SelectedDisk();
+	var prevVolume = SelectedVolume();
 
-	if not iserr(prevSel) { prevName = prevSel["name"]; }
+	var prevDiskName = "";
+	var prevVolumeName = "";
 
-	mounterDevices = SectionizedDevices(LoadDevices());
+	if not iserr(prevDisk) { prevDiskName = prevDisk["name"]; }
+	if not iserr(prevVolume) { prevVolumeName = prevVolume["name"]; }
 
-	var restored = false;
+	mounterDevices = LoadDevices();
+	mounterDisks = BuildDiskList(mounterDevices);
 
-	if prevName != ""
+	var diskIndex = IndexOfName(mounterDisks, prevDiskName);
+
+	if iserr(diskIndex) { mounterSelectedDisk = SnapToDisk(1, 1); }
+	else { mounterSelectedDisk = diskIndex; }
+
+	if iserr(ActiveDisk())
 	{
-		for i = 1 to len(mounterDevices)
-		{
-			var entry = mounterDevices[i];
+		var disk = SelectedDisk();
 
-			if IsDeviceEntry(entry) and entry["name"] == prevName
-			{
-				mounterSelectedIndex = i;
-				restored = true;
-
-				break;
-			}
-		}
+		if iserr(disk) { mounterActiveDisk = ""; }
+		else { mounterActiveDisk = disk["name"]; }
 	}
 
-	# Previously selected device is gone
-	if not restored
-	{
-		if mounterSelectedIndex > len(mounterDevices)
-		{
-			mounterSelectedIndex = len(mounterDevices);
-		}
+	mounterVolumes = VolumesForDisk(mounterDevices, mounterActiveDisk);
 
-		if mounterSelectedIndex < 1 { mounterSelectedIndex = 1; }
+	MounterAdjustDiskScroll();
 
-		mounterSelectedIndex = SnapToDevice(mounterSelectedIndex, 1);
-	}
+	var volumeIndex = IndexOfName(mounterVolumes, prevVolumeName);
+
+	if iserr(volumeIndex) { mounterSelectedIndex = 1; }
+	else { mounterSelectedIndex = volumeIndex; }
 
 	MounterAdjustScroll();
-}
-
-#@ <GetVisibleDeviceCount()>
-#@ Returns how many device rows can be displayed at once.
-
-func GetVisibleDeviceCount()
-{
-	var region = GetMounterListRegion();
-
-	return int(region[5] / FILEROWHEIGHT);
-}
-
-#@ <MounterAdjustScroll()>
-#@ Adjusts scroll offset to keep selection visible.
-
-func MounterAdjustScroll()
-{
-	var visibleDevices = GetVisibleDeviceCount();
-
-	if mounterSelectedIndex < mounterScrollOffset
-	{
-		mounterScrollOffset = mounterSelectedIndex;
-	}
-
-	if mounterSelectedIndex >= mounterScrollOffset + visibleDevices
-	{
-		mounterScrollOffset = mounterSelectedIndex - visibleDevices + 1;
-	}
-
-	# Avoid empty rows below the last device when devices fit the viewport.
-	var maxOffset = len(mounterDevices) - visibleDevices + 1;
-
-	if maxOffset < 1 { maxOffset = 1; }
-	if mounterScrollOffset > maxOffset { mounterScrollOffset = maxOffset; }
-	if mounterScrollOffset < 1 { mounterScrollOffset = 1; }
-
-	# If a section header sits just above the viewport, scroll up so it stays
-	# visible. Otherwise the selected device shows without its section label.
-	# Stop once scrolling further up would push the selection off the bottom.
-	while mounterScrollOffset > 1 and not IsDeviceEntry(mounterDevices[mounterScrollOffset - 1])
-	{
-		if mounterSelectedIndex > mounterScrollOffset + visibleDevices - 2
-		{
-			break;
-		}
-
-		mounterScrollOffset = mounterScrollOffset - 1;
-	}
 }

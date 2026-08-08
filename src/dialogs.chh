@@ -3,21 +3,35 @@
 # dfn-mounter - dialogs.chh
 #
 
-#@ <GetMounterRegion(screenWidth, screenHeight)>
-#@ Returns the mounter region: ''[x, y, width, height]''.
+#@ <EnterMounterDialog()>
+#@ Sets the in-dialog flag and tells the winsize actor to suppress repaints
+#@ until the dialog returns.
 
-func GetMounterRegion(screenWidth, screenHeight)
+func EnterMounterDialog()
 {
-	var x = 1;
-	var y = 1;
-	var width = screenWidth;
-	var height = screenHeight - MounterBottomReserve();
+	mounterInDialog = true;
 
-	return [x, y, width, height];
+	if not iserr(mounterWinsizeHandle)
+	{
+		send(mounterWinsizeHandle, MounterCurrentState());
+	}
+}
+
+#@ <ExitMounterDialog()>
+#@ Clears the in-dialog flag.
+
+func ExitMounterDialog()
+{
+	mounterInDialog = false;
+
+	if not iserr(mounterWinsizeHandle)
+	{
+		send(mounterWinsizeHandle, MounterCurrentState());
+	}
 }
 
 #@ <CloseMounterDialog()>
-#@ Hides the cursor and clears the in-dialog flag.
+#@ Hides the cursor and leaves dialog mode.
 
 func CloseMounterDialog()
 {
@@ -25,13 +39,41 @@ func CloseMounterDialog()
 	ExitMounterDialog();
 }
 
-#@ <DrawInfoRow(contentX, row, labelWidth, valueWidth, label, value)>
-#@ Draws one label / value row of the device info dialog.
+#@ <MounterShowInfoDialog(title, labelWidth, rows)>
+#@ Shows an info dialog titled ''title'' that displays ''rows'' of ''[label, value]''
+#@ with labels padded to ''labelWidth''.
 
-func DrawInfoRow(contentX, row, labelWidth, valueWidth, label, value)
+func MounterShowInfoDialog(title, labelWidth, rows)
 {
-	BFDrawText(contentX, row,
-		BFPadText(label, labelWidth, BFALIGNLEFT) + BFClipText(value, valueWidth));
+	EnterMounterDialog();
+
+	var width = DIALOGWIDTH;
+	var height = len(rows) + 4;
+
+	var region = GetMounterRegion(mounterScreenWidth, mounterScreenHeight);
+	var origin = BFCenterRect(region, width, height);
+	var x = origin[1];
+	var y = origin[2];
+
+	BFClearRegion(x, y, width, height);
+	BFDrawFrame(x, y, width, height, title, BFBOXROUNDED);
+
+	var contentX = x + 2;
+	var valueWidth = width - 4 - labelWidth;
+
+	for rowIndex = 1 to len(rows)
+	{
+		var row = rows[rowIndex];
+
+		BFDrawText(contentX, y + rowIndex,
+			BFPadText(row[1], labelWidth, BFALIGNLEFT) + BFClipText(row[2], valueWidth));
+	}
+
+	BFDrawText(contentX, y + len(rows) + 2, "Press any key...");
+
+	getch();
+
+	CloseMounterDialog();
 }
 
 #@ <MounterShowDebug()>
@@ -51,7 +93,8 @@ func MounterShowDebug()
 }
 
 #@ <MounterShowConfirm(message)>
-#@ Shows a centered confirmation dialog on the full screen.
+#@ Shows a centered Yes/No confirmation dialog with Yes preselected. Returns the
+#@ choice, or ''err'' when the dialog is cancelled.
 
 func MounterShowConfirm(message)
 {
@@ -66,98 +109,75 @@ func MounterShowConfirm(message)
 	return result;
 }
 
-#@ <MounterShowDeviceInfo(dev)>
-#@ Shows a centered info dialog with all relevant metadata for ''dev''ice.
+#@ <MounterConfirmExit()>
+#@ The exit confirmation dialog.
 
-func MounterShowDeviceInfo(dev)
+func MounterConfirmExit()
 {
-	EnterMounterDialog();
+	var confirmed = MounterShowConfirm("Do you really want to exit?");
 
-	var width = DIALOGWIDTH;
-	var height = 14;
-	var labelWidth = 9;
+	if not iserr(confirmed) and confirmed { return true; }
 
-	var region = GetMounterRegion(mounterScreenWidth, mounterScreenHeight);
-	var origin = BFCenterRect(region, width, height);
-	var x = origin[1];
-	var y = origin[2];
+	ClearScreen();
 
-	BFClearRegion(x, y, width, height);
-	BFDrawFrame(x, y, width, height, "Device Info", BFBOXROUNDED);
+	return false;
+}
 
-	var contentX = x + 2;
-	var contentWidth = width - 4;
-	var valueWidth = contentWidth - labelWidth;
-	var row = y + 1;
+#@ <MounterShowVolumeInfo(volume)>
+#@ Shows an info dialog with all relevant metadata for a ''volume'' entry.
 
-	# Name
-	DrawInfoRow(contentX, row, labelWidth, valueWidth, "Name:", DeviceDisplayName(dev));
-	row = row + 1;
+func MounterShowVolumeInfo(volume)
+{
+	var driveStr = volume["model"];
 
-	# Path
-	DrawInfoRow(contentX, row, labelWidth, valueWidth, "Path:", DevicePath(dev));
-	row = row + 1;
-
-	# Type
-	DrawInfoRow(contentX, row, labelWidth, valueWidth, "Type:", DeviceTypeDescription(dev));
-	row = row + 1;
-
-	# Filesystem
-	DrawInfoRow(contentX, row, labelWidth, valueWidth, "FS:",
-		DefaultIfEmpty(dev["fstype"], "(none)"));
-	row = row + 1;
-
-	# Size
-	BFDrawText(contentX, row, BFPadText("Size:", labelWidth, BFALIGNLEFT) + dev["size"]);
-	row = row + 1;
-
-	# Label
-	DrawInfoRow(contentX, row, labelWidth, valueWidth, "Label:",
-		DefaultIfEmpty(dev["label"], "(none)"));
-	row = row + 1;
-
-	# UUID
-	DrawInfoRow(contentX, row, labelWidth, valueWidth, "UUID:",
-		DefaultIfEmpty(dev["uuid"], "(none)"));
-	row = row + 1;
-
-	# Status
-	DrawInfoRow(contentX, row, labelWidth, valueWidth, "Status:",
-		DeviceStatusText(dev, mounterDevices));
-	row = row + 1;
-
-	# Drive
-	var driveStr = dev["model"];
-
-	if driveStr == "" { driveStr = "/dev/" + dev["disk"]; }
+	if driveStr == "" { driveStr = "/dev/" + volume["disk"]; }
 
 	var tagList = [];
 
-	if dev["transport"] != "" { append(tagList, dev["transport"]); }
-	if dev["removable"] { append(tagList, "removable"); }
+	if volume["transport"] != "" { append(tagList, volume["transport"]); }
+	if volume["removable"] { append(tagList, "removable"); }
 
 	if len(tagList) > 0
 	{
 		driveStr = driveStr + " [" + join(tagList, ", ") + "]";
 	}
 
-	DrawInfoRow(contentX, row, labelWidth, valueWidth, "Drive:", driveStr);
-	row = row + 1;
+	MounterShowInfoDialog("Volume Info", 9, [
+			["Name:", DeviceDisplayName(volume)],
+			["Path:", DevicePath(volume)],
+			["Type:", DeviceTypeDescription(volume)],
+			["FS:", DefaultIfEmpty(volume["fstype"], "(none)")],
+			["Size:", volume["size"]],
+			["Label:", DefaultIfEmpty(volume["label"], "(none)")],
+			["UUID:", DefaultIfEmpty(volume["uuid"], "(none)")],
+			["Status:", DeviceStatusText(volume, mounterDevices)],
+			["Drive:", driveStr],
+			["Serial:", DefaultIfEmpty(volume["serial"], "(unknown)")]
+		]);
+}
 
-	# Serial
-	DrawInfoRow(contentX, row, labelWidth, valueWidth, "Serial:",
-		DefaultIfEmpty(dev["serial"], "(unknown)"));
-	row = row + 2;
+#@ <MounterShowDiskInfo(disk)>
+#@ Shows an info dialog with all relevant metadata for a sidebar ''disk'' entry.
 
-	BFDrawText(contentX, row, "Press any key...");
+func MounterShowDiskInfo(disk)
+{
+	var removable = "no";
 
-	getch();
+	if disk["removable"] { removable = "yes"; }
 
-	CloseMounterDialog();
+	MounterShowInfoDialog("Disk Info", 11, [
+			["Model:", DefaultIfEmpty(disk["model"], "(unknown)")],
+			["Path:", "/dev/" + disk["name"]],
+			["Size:", disk["size"]],
+			["Serial:", DefaultIfEmpty(disk["serial"], "(unknown)")],
+			["Transport:", DefaultIfEmpty(disk["transport"], "(unknown)")],
+			["Removable:", removable],
+			["Volumes:", str(len(VolumesForDisk(mounterDevices, disk["name"])))]
+		]);
 }
 
 #@ <MounterShowError(message)>
-#@ Shows a centered error dialog on the full screen.
+#@ Displays an error message dialog.
 
 func MounterShowError(message)
 {

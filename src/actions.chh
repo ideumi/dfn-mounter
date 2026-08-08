@@ -18,105 +18,110 @@ func HandleActionResult(result)
 }
 
 #@ <ActionMountSelected()>
-#@ Mounts the selected device if it is an unmounted non LUKS volume.
+#@ Mounts the selected volume if it is an unmounted non LUKS volume.
 
 func ActionMountSelected()
 {
-	var dev = SelectedDevice();
+	var volume = SelectedVolume();
 
-	if iserr(dev) { return; }
-	if IsMounted(dev) { return; }
-	if not IsMountable(dev) { return; }
+	if iserr(volume) { return; }
+	if IsMounted(volume) { return; }
+	if not IsMountable(volume) { return; }
 
-	HandleActionResult(MountDevice(dev));
+	HandleActionResult(UdisksAction(volume, "mount"));
 }
 
 #@ <ActionUnmountSelected()>
-#@ Unmounts the selected device if it is currently mounted.
+#@ Unmounts the selected volume if it is currently mounted.
 
 func ActionUnmountSelected()
 {
-	var dev = SelectedDevice();
+	var volume = SelectedVolume();
 
-	if iserr(dev) { return; }
-	if not IsMounted(dev) { return; }
+	if iserr(volume) { return; }
+	if not IsMounted(volume) { return; }
 
-	HandleActionResult(UnmountDevice(dev));
+	HandleActionResult(UdisksAction(volume, "unmount"));
 }
 
 #@ <ActionUnlockSelected()>
-#@ Unlocks the selected LUKS device if it is locked.
+#@ Unlocks the selected LUKS volume if it is locked.
 
 func ActionUnlockSelected()
 {
-	var dev = SelectedDevice();
+	var volume = SelectedVolume();
 
-	if iserr(dev) { return; }
-	if not IsLuks(dev) { return; }
-	if IsLuksUnlocked(dev, mounterDevices) { return; }
+	if iserr(volume) { return; }
+	if not IsLuks(volume) { return; }
+	if IsLuksUnlocked(volume, mounterDevices) { return; }
 
-	UnlockLuks(dev);
+	EnterMounterDialog();
+
+	ShowCursor();
+	ClearScreen();
+	CursorTo(1, 1);
+
+	SetAttribute(COLORBOLD);
+	Println("Unlocking " + DeviceDisplayName(volume));
+	SetAttribute(COLORRESET);
+
+	var success = isok(UnlockLuks(volume));
+
+	if not success
+	{
+		Println("");
+		Print("Unlock failed. Press any key to continue.");
+
+		getch();
+	}
+
+	HideCursor();
+	ClearScreen();
+	ExitMounterDialog();
+
 	MounterRefreshDevices();
 }
 
 #@ <ActionLockSelected()>
-#@ Locks the selected unlocked LUKS device.
+#@ Locks the selected unlocked LUKS volume.
 
 func ActionLockSelected()
 {
-	var dev = SelectedDevice();
+	var volume = SelectedVolume();
 
-	if iserr(dev) { return; }
-	if not IsLuks(dev) { return; }
-	if not IsLuksUnlocked(dev, mounterDevices) { return; }
+	if iserr(volume) { return; }
+	if not IsLuks(volume) { return; }
+	if not IsLuksUnlocked(volume, mounterDevices) { return; }
 
-	if IsLuksCryptChildMounted(dev, mounterDevices)
+	if IsLuksCryptChildMounted(volume, mounterDevices)
 	{
 		MounterShowError("Cannot lock: the unlocked contents are still mounted. Unmount them first.");
 
 		return;
 	}
 
-	HandleActionResult(LockLuks(dev));
+	HandleActionResult(UdisksAction(volume, "lock"));
 }
 
-#@ <ActionEjectSelected()>
-#@ Confirms and performs eject / poweroff of the selected devices parent disk.
+#@ <ActionEjectSelectedDisk()>
+#@ Confirms and performs eject / poweroff of the disk selected in the sidebar.
 
-func ActionEjectSelected()
+func ActionEjectSelectedDisk()
 {
-	var dev = SelectedDevice();
+	var disk = SelectedDisk();
 
-	if iserr(dev) { return; }
+	if iserr(disk) { return; }
 
-	var devType = dev["type"];
+	var diskLabel = DiskShortLabel(disk);
 
-	if devType == "crypt"
-	{
-		MounterShowError("Cannot eject an unlocked volume directly. Lock it and eject the parent device.");
-
-		return;
-	}
-
-	var diskName = dev["disk"];
-
-	if diskName == "" or diskName == dev["name"]
-	{
-		MounterShowError("No parent disk found");
-
-		return;
-	}
-
-	var diskLabel = DiskShortLabel(dev);
-
-	if not IsEjectable(dev)
+	if not IsEjectable(disk)
 	{
 		MounterShowError("Refusing to power off " + diskLabel + ": is not a removable device.");
 
 		return;
 	}
 
-	if DiskHasActiveMember(diskName, mounterDevices)
+	if DiskHasActiveMember(disk["name"], mounterDevices)
 	{
 		MounterShowError("Cannot eject " + diskLabel
 			+ ": this drive still has mounted or unlocked partitions. Unmount and lock all of them first.");
@@ -128,35 +133,59 @@ func ActionEjectSelected()
 
 	if not iserr(confirmed) and confirmed
 	{
-		HandleActionResult(EjectDevice(dev));
+		HandleActionResult(EjectDisk(disk));
 		ClearScreen();
 	}
 }
 
 #@ <ActionOpenInDfn()>
 #@ Replaces the dfn-mounter process with depthfinder launched at the selected
-#@ device's mount point.
+#@ volume's mount point. Shows an error when depthfinder is not installed.
 
 func ActionOpenInDfn()
 {
-	var dev = SelectedDevice();
+	var volume = SelectedVolume();
 
-	if iserr(dev) { return; }
-	if not IsMounted(dev) { return; }
+	if iserr(volume) { return; }
+	if not IsMounted(volume) { return; }
+
+	if not IsFile(DFNPATH)
+	{
+		MounterShowError("depthfinder is not installed at " + DFNPATH + ".");
+
+		return;
+	}
 
 	MounterCleanup();
 
-	exec([DFNPATH, dev["mountpoint"]]);
+	exec([DFNPATH, volume["mountpoint"]]);
+
+	HideCursor();
+	ClearScreen();
+
+	MounterShowError("Could not start depthfinder at " + DFNPATH + ", exec failed.");
 }
 
 #@ <ActionShowInfoSelected()>
-#@ Opens the device info dialog for the selected device.
+#@ Opens the volume info dialog for the selected volume.
 
 func ActionShowInfoSelected()
 {
-	var dev = SelectedDevice();
+	var volume = SelectedVolume();
 
-	if iserr(dev) { return; }
+	if iserr(volume) { return; }
 
-	MounterShowDeviceInfo(dev);
+	MounterShowVolumeInfo(volume);
+}
+
+#@ <ActionShowDiskInfoSelected()>
+#@ Opens the disk info dialog for the disk selected in the sidebar.
+
+func ActionShowDiskInfoSelected()
+{
+	var disk = SelectedDisk();
+
+	if iserr(disk) { return; }
+
+	MounterShowDiskInfo(disk);
 }

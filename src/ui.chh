@@ -4,7 +4,7 @@
 #
 
 #@ <DeviceStatusText(dev, devices)>
-#@ Returns the status string used in the STATUS column and the device info dialog.
+#@ Returns the status string used in the STATUS column and the volume info dialog.
 
 func DeviceStatusText(dev, devices)
 {
@@ -73,6 +73,7 @@ func DeviceTypeDescription(dev)
 	{
 		return "LUKS container";
 	}
+	if devType == "disk" { return "Disk"; }
 	if devType == "part" { return "Partition"; }
 	if devType == "crypt" and fstype == "LVM2_member"
 	{
@@ -90,60 +91,160 @@ func DeviceTypeDescription(dev)
 func DeviceDisplayName(dev)
 {
 	var label = dev["label"];
-	var model = dev["model"];
 	var name = dev["name"];
-	var size = dev["size"];
-	var serial = dev["serial"];
 
-	var tailPart = "";
+	if label != "" { return label + " (" + name + ")"; }
 
-	# Last 3 chars of serial
-	if serial != ""
-	{
-		var serialLen = len(serial);
-		var tail = serial;
+	return name;
+}
 
-		if serialLen > 3 { tail = Right(serial, 3); }
+#@ <SidebarDiskTitle(disk)>
+#@ Returns the first line of a sidebar entry: the ''disk'' model, or its name
+#@ when no model is known.
 
-		tailPart = " [" + tail + "]";
-	}
+func SidebarDiskTitle(disk)
+{
+	var model = disk["model"];
 
-	# No label?
-	if label != "" { return label + tailPart + " (" + name + ")"; }
+	if model != "" { return model; }
 
-	# Fall back to model + size
-	if model != "" { return size + " " + model + tailPart + " (" + name + ")"; }
+	return disk["name"];
+}
 
-	# Fall back to name + size
-	return name + tailPart + " (" + size + ")";
+#@ <SidebarDiskDetail(disk)>
+#@ Builds the second line of a sidebar entry: the ''disk'' name, plus its size
+#@ and serial tail when known, joined with ''|''.
+
+func SidebarDiskDetail(disk)
+{
+	var detail = disk["name"];
+	var size = disk["size"];
+	var tail = SerialTail(disk["serial"]);
+
+	if size != "" { detail = detail + " | " + size; }
+	if tail != "" { detail = detail + " | " + tail; }
+
+	return detail;
 }
 
 #@ <MounterGetColumnWidths(width)>
-#@ Returns column widths as a list:
-#@ ''[nameColWidth, fsColWidth, statusColWidth, sizeColWidth]''.
+#@ Returns the volume list column widths ''[nameColWidth, fsColWidth,
+#@ statusColWidth, sizeColWidth]'' for a content area of ''width'' columns.
 
 func MounterGetColumnWidths(width)
 {
-	var sizeColWidth = 10;
-	var fsColWidth = 14;
-	var statusColWidth = 28;
+	var sizeColWidth = 7;
+	var fsColWidth = 11;
+	var statusColWidth = 19;
 	var nameColWidth = width - fsColWidth - statusColWidth - sizeColWidth - 3;
 
 	return [nameColWidth, fsColWidth, statusColWidth, sizeColWidth];
 }
 
-#@ <GetMounterListRegion()>
-#@ Returns the region of the device list: ''[x, headerY, listY, width, height]''.
+#@ <GetMounterRegion(screenWidth, screenHeight)>
+#@ Returns the region right of the sidebar: ''[x, y, width, height]''.
 
-func GetMounterListRegion()
+func GetMounterRegion(screenWidth, screenHeight)
 {
-	var x = 2;
-	var headerY = 1;
-	var listY = 2;
-	var width = mounterScreenWidth - 2;
-	var height = mounterScreenHeight - MounterBottomReserve() - 2;
+	var x = SIDEBARWIDTH + 2;
+	var y = 1;
+	var width = screenWidth - SIDEBARWIDTH - 2;
+	var height = screenHeight - MounterBottomReserve();
 
-	return [x, headerY, listY, width, height];
+	return [x, y, width, height];
+}
+
+#@ <GetMounterSidebarRegion(screenHeight)>
+#@ Returns the region of the disk sidebar: ''[x, y, width, height]''.
+
+func GetMounterSidebarRegion(screenHeight)
+{
+	var x = 1;
+	var y = 1;
+	var width = SIDEBARWIDTH;
+	var height = screenHeight - MounterBottomReserve();
+
+	return [x, y, width, height];
+}
+
+#@ <MounterSidebarEntryHeight(entry, isFirst)>
+#@ Returns how many rows a sidebar entry occupies.
+
+func MounterSidebarEntryHeight(entry, isFirst)
+{
+	if IsDeviceEntry(entry) { return SIDEBARROWHEIGHT; }
+
+	if isFirst { return SIDEBARSECTIONHEIGHT; }
+
+	return SIDEBARSECTIONHEIGHT + SIDEBARSECTIONGAP;
+}
+
+#@ <MounterLastDrawableDisk(offset)>
+#@ Returns the index of the last sidebar entry that fits when the list starts at
+#@ ''offset'', or ''offset - 1'' if none fit.
+
+func MounterLastDrawableDisk(offset)
+{
+	var region = GetMounterSidebarRegion(mounterScreenHeight);
+
+	var lastY = region[2] + region[4] - 1;
+	var rowY = region[2];
+	var last = offset - 1;
+
+	for idx = offset to len(mounterDisks)
+	{
+		var entryHeight = MounterSidebarEntryHeight(mounterDisks[idx], idx == offset);
+
+		if rowY + entryHeight - 1 > lastY { break; }
+
+		rowY = rowY + entryHeight;
+		last = idx;
+	}
+
+	# A section header needs at least one disk under it
+	if last >= offset and not IsDeviceEntry(mounterDisks[last])
+	{
+		last = last - 1;
+	}
+
+	return last;
+}
+
+#@ <GetMounterListRegion(screenWidth, screenHeight)>
+#@ Returns the region of the volume list: ''[x, headerY, listY, width, height]''.
+
+func GetMounterListRegion(screenWidth, screenHeight)
+{
+	var region = GetMounterRegion(screenWidth, screenHeight);
+
+	var headerY = region[2] + TITLEBARHEIGHT;
+	var listY = headerY + LISTHEADERHEIGHT;
+
+	return [region[1], headerY, listY, region[3], region[2] + region[4] - listY];
+}
+
+#@ <MounterDrawTitleBar(x, y, width)>
+#@ Draws the path of the currently selected volume above the volume list.
+
+func MounterDrawTitleBar(x, y, width)
+{
+	BFClearRegion(x, y, width, TITLEBARHEIGHT);
+
+	var path = "";
+	var volume = SelectedVolume();
+
+	if not iserr(volume) { path = DevicePath(volume); }
+	elseif mounterActiveDisk != "" { path = "/dev/" + mounterActiveDisk; }
+
+	if path == "" { return; }
+
+	var hasFocus = mounterFocusPanel == FOCUSVOLUMES;
+
+	if hasFocus { SetAttribute(COLORBOLD); }
+
+	BFDrawText(x, y, BFTruncateMiddle(path, width));
+
+	if hasFocus { SetAttribute(COLORRESET); }
 }
 
 #@ <MounterDrawHeader(x, y, width)>
@@ -151,13 +252,15 @@ func GetMounterListRegion()
 
 func MounterDrawHeader(x, y, width)
 {
+	BFClearRegion(x, y, width, LISTHEADERHEIGHT);
+
 	var cols = MounterGetColumnWidths(width);
 	var nameColWidth = cols[1];
 	var fsColWidth = cols[2];
 	var statusColWidth = cols[3];
 	var sizeColWidth = cols[4];
 
-	var nameHeader = BFPadText("  DEVICE", nameColWidth, BFALIGNLEFT);
+	var nameHeader = BFPadText("  VOLUME", nameColWidth, BFALIGNLEFT);
 	var fsHeader = BFPadText("FSTYPE", fsColWidth, BFALIGNLEFT);
 	var statusHeader = BFPadText("STATUS", statusColWidth, BFALIGNRIGHT);
 	var sizeHeader = BFPadText("SIZE", sizeColWidth, BFALIGNRIGHT);
@@ -169,30 +272,19 @@ func MounterDrawHeader(x, y, width)
 	SetAttribute(COLORRESET);
 }
 
-#@ <MounterDrawDeviceRow(x, baseY, width, nameColWidth, fsColWidth, statusColWidth, sizeColWidth, idx)>
-#@ Draws one device list row at position ''baseY''.
+#@ <MounterDrawVolumeRow(x, baseY, width, nameColWidth, fsColWidth, statusColWidth, sizeColWidth, idx)>
+#@ Draws a single volume list row at position ''baseY''.
 
-func MounterDrawDeviceRow(x, baseY, width, nameColWidth, fsColWidth, statusColWidth, sizeColWidth, idx)
+func MounterDrawVolumeRow(x, baseY, width, nameColWidth, fsColWidth, statusColWidth, sizeColWidth, idx)
 {
 	var emptyRow = BFPadText("", width, BFALIGNLEFT);
 
-	if idx >= 1 and idx <= len(mounterDevices) and not IsDeviceEntry(mounterDevices[idx])
+	if idx >= 1 and idx <= len(mounterVolumes)
 	{
-		var sectionText = BFClipText("── " + mounterDevices[idx]["label"] + " ──", width);
-
-		sectionText = BFPadText(sectionText, width, BFALIGNLEFT);
-
-		SetAttribute(COLORBOLD);
-		BFDrawText(x, baseY, sectionText);
-		SetAttribute(COLORRESET);
-		BFDrawText(x, baseY + 1, emptyRow);
-	}
-	elseif idx >= 1 and idx <= len(mounterDevices)
-	{
-		var dev = mounterDevices[idx];
-		var displayName = DeviceDisplayName(dev);
-		var size = dev["size"];
-		var isSelected = idx == mounterSelectedIndex;
+		var volume = mounterVolumes[idx];
+		var displayName = DeviceDisplayName(volume);
+		var size = volume["size"];
+		var isSelected = idx == mounterSelectedIndex and mounterFocusPanel == FOCUSVOLUMES;
 
 		if isSelected
 		{
@@ -200,35 +292,31 @@ func MounterDrawDeviceRow(x, baseY, width, nameColWidth, fsColWidth, statusColWi
 			SetAttribute(COLORBOLD);
 			SetAttribute(COLORBGWHITE);
 		}
-		elseif IsMounted(dev)
+		elseif IsMounted(volume)
 		{
 			SetAttribute(COLORBOLD);
 			SetAttribute(COLORCYAN);
 		}
-		elseif IsLuks(dev)
+		elseif IsLuks(volume)
 		{
 			SetAttribute(COLORBOLD);
 			SetAttribute(COLORMAGENTA);
 		}
 
-		var status = DeviceStatusText(dev, mounterDevices);
-
-		# Optional transport tag in front of the name
-		var tag = "";
-
-		if dev["transport"] == "usb" { tag = "[USB] "; }
+		var status = DeviceStatusText(volume, mounterDevices);
 
 		# Build columns
-		var nameText = "  " + tag + displayName;
+		var nameText = "  " + displayName;
 		nameText = BFClipText(nameText, nameColWidth);
 		nameText = BFPadText(nameText, nameColWidth, BFALIGNLEFT);
 
-		var fsText = BFClipText(dev["fstype"], fsColWidth);
+		var fsText = BFClipText(volume["fstype"], fsColWidth);
 		fsText = BFPadText(fsText, fsColWidth, BFALIGNLEFT);
 
-		var sizeText = BFPadText(size, sizeColWidth, BFALIGNRIGHT);
+		var sizeText = BFClipText(size, sizeColWidth);
+		sizeText = BFPadText(sizeText, sizeColWidth, BFALIGNRIGHT);
 
-		var statusText = BFClipText(status, statusColWidth);
+		var statusText = BFTruncateMiddle(status, statusColWidth);
 		statusText = BFPadText(statusText, statusColWidth, BFALIGNRIGHT);
 
 		var rowText = nameText + " " + fsText + " " + statusText + " " + sizeText;
@@ -247,47 +335,189 @@ func MounterDrawDeviceRow(x, baseY, width, nameColWidth, fsColWidth, statusColWi
 	SetAttribute(COLORRESET);
 }
 
-#@ <MounterDrawDeviceList(x, y, width, height)>
-#@ Draws the device list.
+#@ <MounterDrawEmptyState(x, y, width, height)>
+#@ Draws the placeholder that is shown when the selected disk has no volumes.
 
-func MounterDrawDeviceList(x, y, width, height)
+func MounterDrawEmptyState(x, y, width, height)
 {
+	BFClearRegion(x, y, width, height);
+
+	if height < 3 { return; }
+
+	var origin = BFCenterRect([x, y, width, height], width, 3);
+	var shrugY = origin[2];
+
+	SetFGColor256(DFNCOLORDIM);
+	BFDrawText(x, shrugY, BFPadText("¯\\_(ツ)_/¯", width, BFALIGNCENTER));
+	BFDrawText(x, shrugY + 2, BFPadText("There is nothing here", width, BFALIGNCENTER));
+	SetAttribute(COLORRESET);
+}
+
+#@ <MounterDrawVolumeList(x, y, width, height)>
+#@ Draws the volume list, or the empty state when the selected disk has no volumes.
+
+func MounterDrawVolumeList(x, y, width, height)
+{
+	if len(mounterVolumes) == 0
+	{
+		MounterDrawEmptyState(x, y, width, height);
+
+		return;
+	}
+
 	var cols = MounterGetColumnWidths(width);
 	var nameColWidth = cols[1];
 	var fsColWidth = cols[2];
 	var statusColWidth = cols[3];
 	var sizeColWidth = cols[4];
 
-	var visibleDevices = int(height / FILEROWHEIGHT);
+	var visibleVolumes = int(height / VOLUMEROWHEIGHT);
 
-	for devRow = 1 to visibleDevices
+	for volumeRow = 1 to visibleVolumes
 	{
-		var idx = mounterScrollOffset + devRow - 1;
-		var baseY = y + (devRow - 1) * FILEROWHEIGHT;
+		var idx = mounterScrollOffset + volumeRow - 1;
+		var baseY = y + (volumeRow - 1) * VOLUMEROWHEIGHT;
 
-		MounterDrawDeviceRow(x, baseY, width, nameColWidth, fsColWidth, statusColWidth, sizeColWidth, idx);
+		MounterDrawVolumeRow(x, baseY, width, nameColWidth, fsColWidth, statusColWidth, sizeColWidth, idx);
+	}
+
+	var painted = visibleVolumes * VOLUMEROWHEIGHT;
+
+	if painted < height
+	{
+		BFClearRegion(x, y + painted, width, height - painted);
 	}
 }
 
-#@ <MounterRedrawDeviceRow(idx)>
-#@ Redraws the device row for entry ''idx'' in place if it is within the visible
+#@ <MounterRedrawVolumeRow(idx)>
+#@ Redraws the volume row for entry ''idx'' in place if it is within the visible
 #@ viewport.
 
-func MounterRedrawDeviceRow(idx)
+func MounterRedrawVolumeRow(idx)
 {
-	var region = GetMounterListRegion();
+	var region = GetMounterListRegion(mounterScreenWidth, mounterScreenHeight);
 
-	var visibleDevices = int(region[5] / FILEROWHEIGHT);
+	var visibleVolumes = int(region[5] / VOLUMEROWHEIGHT);
 
-	var devRow = idx - mounterScrollOffset + 1;
+	var volumeRow = idx - mounterScrollOffset + 1;
 
-	if devRow < 1 or devRow > visibleDevices { return; }
+	if volumeRow < 1 or volumeRow > visibleVolumes { return; }
 
 	var cols = MounterGetColumnWidths(region[4]);
 
-	var baseY = region[3] + (devRow - 1) * FILEROWHEIGHT;
+	var baseY = region[3] + (volumeRow - 1) * VOLUMEROWHEIGHT;
 
-	MounterDrawDeviceRow(region[1], baseY, region[4], cols[1], cols[2], cols[3], cols[4], idx);
+	MounterDrawVolumeRow(region[1], baseY, region[4], cols[1], cols[2], cols[3], cols[4], idx);
+}
+
+#@ <MounterDrawSidebarRow(x, y, width, idx, isFirst)>
+#@ Draws the sidebar entry ''idx'' at ''y'', either a section header or a disk.
+#@ ''isFirst'' is true for the topmost drawn entry.
+
+func MounterDrawSidebarRow(x, y, width, idx, isFirst)
+{
+	var rowWidth = width - 1;
+	var textWidth = rowWidth - 2;
+
+	var emptyRow = BFPadText("", rowWidth, BFALIGNLEFT);
+
+	var entry = mounterDisks[idx];
+
+	if not IsDeviceEntry(entry)
+	{
+		var sectionText = BFClipText(" ── " + entry["label"] + " ──", rowWidth);
+		var headerY = y;
+
+		if not isFirst
+		{
+			BFDrawText(x, y, emptyRow);
+
+			headerY = y + 1;
+		}
+
+		SetAttribute(COLORBOLD);
+		BFDrawText(x, headerY, BFPadText(sectionText, rowWidth, BFALIGNLEFT));
+		SetAttribute(COLORRESET);
+
+		BFDrawText(x, headerY + 1, emptyRow);
+
+		return;
+	}
+
+	var isSelected = idx == mounterSelectedDisk and mounterFocusPanel == FOCUSSIDEBAR;
+
+	var indicator = "  ";
+
+	if isSelected { indicator = "> "; }
+
+	var title = BFPadText(indicator + BFClipText(SidebarDiskTitle(entry), textWidth),
+		rowWidth, BFALIGNLEFT);
+
+	var detail = BFPadText(indicator + BFClipText(SidebarDiskDetail(entry), textWidth),
+		rowWidth, BFALIGNLEFT);
+
+	if isSelected
+	{
+		SetAttribute(COLORBLACK);
+		SetAttribute(COLORBOLD);
+		SetAttribute(COLORBGWHITE);
+
+		BFDrawText(x, y, title);
+		BFDrawText(x, y + 1, detail);
+
+		SetAttribute(COLORRESET);
+	}
+	elseif entry["name"] == mounterActiveDisk
+	{
+		SetAttribute(COLORWHITE);
+		SetAttribute(COLORBOLD);
+		SetBGColorRGB(DFNCOLORACCENT["r"], DFNCOLORACCENT["g"], DFNCOLORACCENT["b"]);
+
+		BFDrawText(x, y, title);
+		BFDrawText(x, y + 1, detail);
+
+		SetAttribute(COLORRESET);
+	}
+	else
+	{
+		SetAttribute(COLORBOLD);
+		BFDrawText(x, y, title);
+		SetAttribute(COLORRESET);
+
+		SetFGColor256(DFNCOLORDIM);
+		BFDrawText(x, y + 1, detail);
+		SetAttribute(COLORRESET);
+	}
+}
+
+#@ <MounterDrawSidebar(x, y, width, height)>
+#@ Draws the disk sidebar at position ''x'' and ''y''.
+
+func MounterDrawSidebar(x, y, width, height)
+{
+	var lastY = y + height - 1;
+	var rowY = y;
+
+	for idx = mounterDiskScrollOffset to MounterLastDrawableDisk(mounterDiskScrollOffset)
+	{
+		var isFirst = idx == mounterDiskScrollOffset;
+
+		MounterDrawSidebarRow(x, rowY, width, idx, isFirst);
+
+		rowY = rowY + MounterSidebarEntryHeight(mounterDisks[idx], isFirst);
+	}
+
+	BFClearRegion(x, rowY, width - 1, lastY - rowY + 1);
+}
+
+#@ <MounterDrawVerticalSeparator(x, y, height)>
+#@ Draws the vertical line between the sidebar and the volume list.
+
+func MounterDrawVerticalSeparator(x, y, height)
+{
+	SetFGColor256(DFNCOLORDIM);
+	BFDrawVLine(x, y, height, "│");
+	SetAttribute(COLORRESET);
 }
 
 #@ <MounterBottomReserve()>
@@ -311,24 +541,12 @@ func MounterDrawBottom()
 	else { MounterDrawBottomHint(); }
 }
 
-#@ <MounterDrawScreen()>
-#@ Draws the full screen.
-
-func MounterDrawScreen()
-{
-	var region = GetMounterListRegion();
-
-	MounterDrawHeader(region[1], region[2], region[4]);
-	MounterDrawDeviceList(region[1], region[3], region[4], region[5]);
-	MounterDrawBottom();
-}
-
 #@ <MounterDrawBottomHint()>
 #@ Draws the ". binds" hint.
 
 func MounterDrawBottomHint()
 {
-	BFClearRegion(1, mounterScreenHeight, 12, 1);
+	BFClearRegion(1, mounterScreenHeight, SIDEBARWIDTH - 1, 1);
 
 	SetFGColor256(DFNCOLORDIM);
 	BFDrawText(2, mounterScreenHeight, ". binds");
@@ -343,16 +561,67 @@ func MounterDrawKeybindsBar()
 	var rows = [];
 
 	append(rows, []);
-	append(rows, [
-			["↑↓", "Navigate"],
-			["←", "Unmount/Lock"],
-			["→", "Mount/Unlock/Open"],
-			["e", "Eject"],
-			["i", "Info"],
-			["r", "Refresh"],
-			["Esc", "Quit"]
-		]);
+
+	if mounterFocusPanel == FOCUSSIDEBAR
+	{
+		append(rows, [
+				["↑↓", "Navigate"],
+				["→ Enter", "Go"],
+				["Tab", "Volumes"],
+				["i", "Info"],
+				["e", "Eject"],
+				["r", "Refresh"],
+				["Esc", "Quit"]
+			]);
+	}
+	else
+	{
+		append(rows, [
+				["↑↓", "Navigate"],
+				["←", "Unmount/Lock"],
+				["→", "Mount/Unlock/Open"],
+				["Tab", "Disks"],
+				["i", "Info"],
+				["r", "Refresh"],
+				["Esc", "Quit"]
+			]);
+	}
+
 	append(rows, []);
 
 	BFKeybindsBar(1, mounterScreenHeight - KEYBINDSBARHEIGHT + 1, mounterScreenWidth, rows);
+}
+
+#@ <MounterDrawScreen()>
+#@ Draws the complete screen.
+
+func MounterDrawScreen()
+{
+	var sidebar = GetMounterSidebarRegion(mounterScreenHeight);
+	var panel = GetMounterRegion(mounterScreenWidth, mounterScreenHeight);
+	var region = GetMounterListRegion(mounterScreenWidth, mounterScreenHeight);
+
+	var separatorHeight = mounterScreenHeight;
+
+	if mounterShowKeybinds
+	{
+		separatorHeight = mounterScreenHeight - KEYBINDSBARHEIGHT;
+	}
+
+	MounterDrawSidebar(sidebar[1], sidebar[2], sidebar[3], sidebar[4]);
+	MounterDrawVerticalSeparator(SIDEBARWIDTH, 1, separatorHeight);
+
+	MounterDrawTitleBar(panel[1], panel[2], panel[3]);
+
+	if len(mounterVolumes) == 0
+	{
+		BFClearRegion(region[1], region[2], region[4], LISTHEADERHEIGHT);
+	}
+	else
+	{
+		MounterDrawHeader(region[1], region[2], region[4]);
+	}
+
+	MounterDrawVolumeList(region[1], region[3], region[4], region[5]);
+	MounterDrawBottom();
 }

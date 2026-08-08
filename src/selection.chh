@@ -1,0 +1,68 @@
+#!/usr/bin/chippy
+#
+# dfn-mounter - selection.chh
+#
+
+#@ <SelectedDisk()>
+#@ Returns the currently selected sidebar entry, or ''err'' if the current
+#@ selection is not valid. A valid selection is an in-range index pointing at a
+#@ disk and not a section header.
+
+func SelectedDisk()
+{
+	if mounterSelectedDisk < 1 or mounterSelectedDisk > len(mounterDisks)
+	{
+		return err;
+	}
+
+	var disk = mounterDisks[mounterSelectedDisk];
+
+	if not IsDeviceEntry(disk) { return err; }
+
+	return disk;
+}
+
+#@ <IndexOfName(entries, name)>
+#@ Returns the index of the device named ''name'' in ''entries'', or ''err'' if
+#@ there is no match. Section headers are skipped.
+
+func IndexOfName(entries, name)
+{
+	if name == "" { return err; }
+
+	for entryIndex = 1 to len(entries)
+	{
+		var entry = entries[entryIndex];
+
+		if IsDeviceEntry(entry) and entry["name"] == name { return entryIndex; }
+	}
+
+	return err;
+}
+
+#@ <ActiveDisk()>
+#@ Returns the disk entry whose volumes are currently listed, or ''err'' if there
+#@ is none.
+
+func ActiveDisk()
+{
+	var idx = IndexOfName(mounterDisks, mounterActiveDisk);
+
+	if iserr(idx) { return err; }
+
+	return mounterDisks[idx];
+}
+
+#@ <SelectedVolume()>
+#@ Returns the currently selected volume of the volume list, or ''err'' if the
+#@ current selection is out of range.
+
+func SelectedVolume()
+{
+	if mounterSelectedIndex < 1 or mounterSelectedIndex > len(mounterVolumes)
+	{
+		return err;
+	}
+
+	return mounterVolumes[mounterSelectedIndex];
+}
