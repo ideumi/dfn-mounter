@@ -5,7 +5,7 @@
 
 #@ <EnterMounterDialog()>
 #@ Sets the in-dialog flag and tells the winsize actor to suppress repaints until
-#q the dialog returns.
+#@ the dialog returns.
 
 func EnterMounterDialog()
 {
@@ -76,18 +76,52 @@ func MounterShowInfoDialog(title, labelWidth, rows)
 	CloseMounterDialog();
 }
 
-#@ <MounterShowDebug()>
-#@ Renders a small debug dialog where versions can be checked.
+#@ <MounterShowAbout()>
+#@ Shows the about dialog.
 
-func MounterShowDebug()
+func MounterShowAbout()
 {
 	EnterMounterDialog();
 
-	BFShowMessage(GetMounterRegion(mounterScreenWidth, mounterScreenHeight),
-		DIALOGWIDTH,
-		"Debug",
-		"This is " + PROGRAMNAME + " V-" + VERSION + "\nusing boxflinger V-" +
-		BFVERSION + "\n\nCopyright (c) 2026 ideumi", COLORRESET);
+	var width = DIALOGWIDTH;
+	var height = 13;
+
+	var region = GetMounterRegion(mounterScreenWidth, mounterScreenHeight);
+	var origin = BFCenterRect(region, width, height);
+	var x = origin[1];
+	var y = origin[2];
+
+	BFClearRegion(x, y, width, height);
+	BFDrawFrame(x, y, width, height, "About", BFBOXROUNDED);
+
+	var contentX = x + 2;
+	var contentWidth = width - 4;
+
+	var title = PROGRAMNAME + " V-" + VERSION;
+	title = BFPadText(title, contentWidth, BFALIGNCENTER);
+
+	var desc = "A simple TUI disk mounter";
+	desc = BFPadText(desc, contentWidth, BFALIGNCENTER);
+
+	var quote = "HEY EVERY !! W4NNA MOUNT A [[BIG DISK]] ??";
+	quote = BFPadText(quote, contentWidth, BFALIGNCENTER);
+
+	var copyright = "Copyright (c) 2026 ideumi";
+	copyright = BFPadText(copyright, contentWidth, BFALIGNCENTER);
+
+	var bfver = "using boxflinger V-" + BFVERSION;
+	bfver = BFPadText(bfver, contentWidth, BFALIGNCENTER);
+
+	SetAttribute(COLORBOLD);
+	BFDrawText(contentX, y + 2, title);
+	SetAttribute(COLORRESET);
+	BFDrawText(contentX, y + 3, bfver);
+	BFDrawText(contentX, y + 5, desc);
+	BFDrawText(contentX, y + 7, quote);
+	BFDrawText(contentX, y + 9, copyright);
+	BFDrawText(contentX, y + 11, "Press any key...");
+
+	getch();
 
 	CloseMounterDialog();
 }

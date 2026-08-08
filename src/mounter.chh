@@ -281,7 +281,7 @@ func MounterMainLoop()
 		}
 		elseif key == KEYHASH
 		{
-			MounterShowDebug();
+			MounterShowAbout();
 		}
 		elseif key == KEYR or key == KEYRR
 		{

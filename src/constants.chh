@@ -38,27 +38,27 @@ var VOLUMEROWHEIGHT = 2;
 var SIDEBARWIDTH = 34;
 
 #@ <SIDEBARROWHEIGHT>
-#@ Height of each sidebar disk entry: title and detail
+#@ Height of each sidebar disk entry
 
 var SIDEBARROWHEIGHT = 2;
 
 #@ <SIDEBARSECTIONHEIGHT>
-#@ Height of a sidebar section header: the label and a blank row below it
+#@ Height of a sidebar section header
 
 var SIDEBARSECTIONHEIGHT = 2;
 
 #@ <SIDEBARSECTIONGAP>
-#@ Extra blank row drawn above a section header that does not open the viewport
+#@ Extra blank row above a section header
 
 var SIDEBARSECTIONGAP = 1;
 
 #@ <TITLEBARHEIGHT>
-#@ Rows the volume panel title bar occupies, including its blank spacer row
+#@ Rows the volume panel title bar occupies
 
 var TITLEBARHEIGHT = 2;
 
 #@ <LISTHEADERHEIGHT>
-#@ Rows the volume list column header occupies, including its blank spacer row
+#@ Rows the volume list column header occupies
 
 var LISTHEADERHEIGHT = 2;
 
