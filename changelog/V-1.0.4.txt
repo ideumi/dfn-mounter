@@ -1,0 +1,15 @@
+What's New:
+
+	- restructured the mounter into a new two-panel layout
+		- the sidebar now only displays disks while the volume browser displays the volumes of the selected disk
+		- disks are still grouped into Removable / Internal / System
+		- info dialog added specifically for disks
+		- the sidebar scrolls if all disks don't fit on the screen
+
+	- introduced a simple accent color system
+		- the selected disk in the sidebar now uses the accent color
+
+	- mounted volumes with a path can now be opened in depthfinder if depthfinder is installed
+	- bug: the device info dialog could overlap the keybinds bar, minimum terminal height is now 17 rows
+	- replaced the debug dialog with the about dialog from depthfinder
+	- some other minor code quality improvements and streamlining
