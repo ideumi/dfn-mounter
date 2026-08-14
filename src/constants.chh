@@ -8,7 +8,7 @@
 #@ <VERSION>
 #@ Program version string
 
-var VERSION = "1.0.3";
+var VERSION = "1.0.4";
 
 #@ <PROGRAMNAME>
 #@ Program display name
@@ -20,17 +20,47 @@ var PROGRAMNAME = "dfn-mounter";
 #@ <DIALOGWIDTH>
 #@ Standard width for dialog boxes
 
-var DIALOGWIDTH = 65;
+var DIALOGWIDTH = 55;
 
 #@ <KEYBINDSBARHEIGHT>
 #@ Height of the keybinds bar at the bottom
 
 var KEYBINDSBARHEIGHT = 3;
 
-#@ <FILEROWHEIGHT>
-#@ Height of each device entry
+#@ <VOLUMEROWHEIGHT>
+#@ Height of each volume entry
 
-var FILEROWHEIGHT = 2;
+var VOLUMEROWHEIGHT = 2;
+
+#@ <SIDEBARWIDTH>
+#@ Width of the disk sidebar
+
+var SIDEBARWIDTH = 34;
+
+#@ <SIDEBARROWHEIGHT>
+#@ Height of each sidebar disk entry
+
+var SIDEBARROWHEIGHT = 2;
+
+#@ <SIDEBARSECTIONHEIGHT>
+#@ Height of a sidebar section header
+
+var SIDEBARSECTIONHEIGHT = 2;
+
+#@ <SIDEBARSECTIONGAP>
+#@ Extra blank row above a section header
+
+var SIDEBARSECTIONGAP = 1;
+
+#@ <TITLEBARHEIGHT>
+#@ Rows the volume panel title bar occupies
+
+var TITLEBARHEIGHT = 2;
+
+#@ <LISTHEADERHEIGHT>
+#@ Rows the volume list column header occupies
+
+var LISTHEADERHEIGHT = 2;
 
 #@ <MINTERMWIDTH>
 #@ Minimum required terminal width
@@ -40,7 +70,19 @@ var MINTERMWIDTH = 95;
 #@ <MINTERMHEIGHT>
 #@ Minimum required terminal height
 
-var MINTERMHEIGHT = 15;
+var MINTERMHEIGHT = 17;
+
+# --- Focus panel ---
+
+#@ <FOCUSSIDEBAR>
+#@ Focus is on the disk sidebar
+
+var FOCUSSIDEBAR = 1;
+
+#@ <FOCUSVOLUMES>
+#@ Focus is on the volume list
+
+var FOCUSVOLUMES = 2;
 
 # --- Device resolution ---
 
@@ -60,6 +102,11 @@ var LSBLKPATH = "/usr/bin/lsblk";
 #@ Path to udisksctl
 
 var UDISKSCTLPATH = "/usr/bin/udisksctl";
+
+#@ <DFNPATH>
+#@ Path to depthfinder
+
+var DFNPATH = "/usr/bin/dfn";
 
 #@ <LSBLKCOLUMNS>
 #@ Columns for lsblk -Pno
@@ -83,6 +130,12 @@ var SWAPMOUNTPOINT = "[SWAP]";
 #@ 256-color greyscale color
 
 var DFNCOLORDIM = 240;
+
+#@ <DFNCOLORACCENT>
+#@ Primary accent color for some handpicked elements, as ''r'', ''g'' and ''b''
+#@ color map
+
+var DFNCOLORACCENT = m["r": 0, "g": 0, "b": 255];
 
 # --- Keys ---
 

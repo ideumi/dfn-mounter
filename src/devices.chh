@@ -17,29 +17,29 @@ func ParsePairValue(line, key)
 	var lineLen = len(line);
 
 	# Find closing quote and skip \" escapes
-	var i = start;
+	var pos = start;
 	var endPos = -1;
 
-	while i <= lineLen
+	while pos <= lineLen
 	{
-		var ch = slice(line, i, i);
+		var ch = slice(line, pos, pos);
 
-		if ch == "\\" and i < lineLen
+		if ch == "\\" and pos < lineLen
 		{
 			# Skip escaped char
-			i = i + 2;
+			pos = pos + 2;
 
 			continue;
 		}
 
 		if ch == "\""
 		{
-			endPos = i;
+			endPos = pos;
 
 			break;
 		}
 
-		i = i + 1;
+		pos = pos + 1;
 	}
 
 	if endPos < 0 { return ""; }
@@ -61,7 +61,7 @@ func ResolveDisk(name, parentMap)
 {
 	var current = name;
 
-	for i = 1 to MAXPARENTDEPTH
+	for hop = 1 to MAXPARENTDEPTH
 	{
 		if not has(parentMap, current) { return current; }
 
@@ -82,13 +82,14 @@ func ResolveDisk(name, parentMap)
 #@ Map fields:
 #@ - ''"name"'' (String): device name, e.g. ''sda1'' or ''nvme0n1p3_crypt''
 #@ - ''"size"'' (String): human-readable size, e.g. ''8G''
-#@ - ''"type"'' (String): device type, one of ''part'', ''crypt'', ''lvm''
+#@ - ''"type"'' (String): device type, one of ''disk'', ''part'', ''crypt'', ''lvm''
 #@ - ''"fstype"'' (String): filesystem type, e.g. ''ext4'' or ''crypto_LUKS''
 #@ - ''"label"'' (String): filesystem label
 #@ - ''"uuid"'' (String): filesystem UUID
 #@ - ''"mountpoint"'' (String): current mountpoint, or ''[SWAP]''
 #@ - ''"model"'' (String): parent disk model
 #@ - ''"serial"'' (String): parent disk serial number
+#@ - ''"diskSize"'' (String): human-readable size of the parent disk, e.g. ''1T''
 #@ - ''"pkname"'' (String): kernel name of the immediate parent device
 #@ - ''"parent"'' (String): resolved name of the immediate parent device
 #@ - ''"disk"'' (String): resolved root disk name from walking the parent chain
@@ -107,9 +108,9 @@ func LoadDevices()
 	# references can be resolved back to those readable names
 	var knameToName = m[];
 
-	for i = 1 to len(lines)
+	for lineIndex = 1 to len(lines)
 	{
-		var line = Trim(lines[i]);
+		var line = Trim(lines[lineIndex]);
 
 		if line == "" { continue; }
 
@@ -125,9 +126,9 @@ func LoadDevices()
 	# Child to parent map
 	var parentMap = m[];
 
-	for i = 1 to len(lines)
+	for lineIndex = 1 to len(lines)
 	{
-		var line = Trim(lines[i]);
+		var line = Trim(lines[lineIndex]);
 
 		if line == "" { continue; }
 
@@ -139,7 +140,10 @@ func LoadDevices()
 		{
 			var resolvedParent = pkname;
 
-			if has(knameToName, pkname) { resolvedParent = knameToName[pkname]; }
+			if has(knameToName, pkname)
+			{
+				resolvedParent = knameToName[pkname];
+			}
 
 			parentMap[name] = resolvedParent;
 		}
@@ -149,6 +153,7 @@ func LoadDevices()
 			diskAttrs[name] = m[
 				"model": ParsePairValue(line, "MODEL"),
 				"serial": ParsePairValue(line, "SERIAL"),
+				"diskSize": ParsePairValue(line, "SIZE"),
 				"removable": ParsePairValue(line, "RM") == "1",
 				"transport": ParsePairValue(line, "TRAN")
 			];
@@ -157,15 +162,15 @@ func LoadDevices()
 
 	var devices = [];
 
-	for i = 1 to len(lines)
+	for lineIndex = 1 to len(lines)
 	{
-		var line = Trim(lines[i]);
+		var line = Trim(lines[lineIndex]);
 
 		if line == "" { continue; }
 
 		var devType = ParsePairValue(line, "TYPE");
 
-		if devType != "part" and devType != "crypt" and devType != "lvm"
+		if devType != "disk" and devType != "part" and devType != "crypt" and devType != "lvm"
 		{
 			continue;
 		}
@@ -186,6 +191,7 @@ func LoadDevices()
 		var disk = ResolveDisk(name, parentMap);
 		var model = "";
 		var serial = "";
+		var diskSize = "";
 		var removable = false;
 		var transport = "";
 
@@ -195,6 +201,7 @@ func LoadDevices()
 
 			model = attrs["model"];
 			serial = attrs["serial"];
+			diskSize = attrs["diskSize"];
 			removable = attrs["removable"];
 			transport = attrs["transport"];
 		}
@@ -209,6 +216,7 @@ func LoadDevices()
 			"mountpoint": mountpoint,
 			"model": model,
 			"serial": serial,
+			"diskSize": diskSize,
 			"pkname": pkname,
 			"parent": parent,
 			"disk": disk,
@@ -232,43 +240,89 @@ func IsDeviceEntry(entry)
 	return entry["type"] != "section";
 }
 
-#@ <SectionizedDevices(devices)>
-#@ Groups ''devices'' into Removable / Devices / System and inserts section header
-#@ entries.
+#@ <BuildDiskList(devices)>
+#@ Builds a list of only the parent disks in ''devices'' and groups them. Returns
+#@ the list of parent disks with section header entries inserted (for the sidebar).
+#@
+#@ Disk map fields:
+#@ - ''"type"'' (String): always ''disk''
+#@ - ''"name"'' (String): disk name, e.g. ''nvme0n1''
+#@ - ''"disk"'' (String): same as ''"name"'', so disk helpers accept the entry
+#@ - ''"model"'' (String): disk model
+#@ - ''"serial"'' (String): disk serial number
+#@ - ''"size"'' (String): human-readable disk size, e.g. ''1T''
+#@ - ''"removable"'' (Bool): whether the disk is removable
+#@ - ''"transport"'' (String): disk transport, e.g. ''usb'' or ''nvme''
+#@
+#@ - volume-only fields (''fstype'', ''label'', ''uuid'', ''mountpoint'', ''pkname'' and ''parent'') are all ''err''
 
-func SectionizedDevices(devices)
+func BuildDiskList(devices)
 {
 	var systemDisk = "";
+	var seen = m[];
+	var disks = [];
 
-	for i = 1 to len(devices)
+	for deviceIndex = 1 to len(devices)
 	{
-		var d = devices[i];
+		var device = devices[deviceIndex];
+		var name = device["disk"];
 
-		if d["mountpoint"] == "/"
-		{
-			systemDisk = d["disk"];
+		if device["mountpoint"] == "/" { systemDisk = name; }
 
-			break;
-		}
+		if name == "" { continue; }
+		if has(seen, name) { continue; }
+
+		seen[name] = true;
+
+		# These err fields are here for parity so we don't have two different
+		# device map forms.
+		# TODO: Maybe centralize this into the chippy equivalent of a constructor
+		# at some point.
+
+		append(disks, m[
+				"type": "disk",
+				"name": name,
+				"disk": name,
+				"model": device["model"],
+				"serial": device["serial"],
+				"size": device["diskSize"],
+				"removable": device["removable"],
+				"transport": device["transport"],
+				"fstype": err,
+				"label": err,
+				"uuid": err,
+				"mountpoint": err,
+				"pkname": err,
+				"parent": err
+			]);
 	}
 
 	var removable = [];
 	var internal = [];
 	var system = [];
 
-	for i = 1 to len(devices)
+	for diskIndex = 1 to len(disks)
 	{
-		var d = devices[i];
+		var disk = disks[diskIndex];
 
 		# Check system before removable so a live-USB boot drive lands in the
 		# System section instead of Removable.
 
-		if systemDisk != "" and d["disk"] == systemDisk { append(system, d); }
-		elseif IsEjectable(d) { append(removable, d); }
-		else { append(internal, d); }
+		if systemDisk != "" and disk["name"] == systemDisk
+		{
+			append(system, disk);
+		}
+		elseif IsEjectable(disk)
+		{
+			append(removable, disk);
+		}
+		else
+		{
+			append(internal, disk);
+		}
 	}
 
-	# Only show a section header when that section is not empty.
+	# Only show section headers when they're not empty
 	var result = [];
 
 	if len(removable) > 0
@@ -283,12 +337,12 @@ func SectionizedDevices(devices)
 
 	if len(internal) > 0
 	{
-		var devicesHeader = m[
+		var internalHeader = m[
 			"type": "section",
-			"label": "Devices"
+			"label": "Internal"
 		];
 
-		result = result + [devicesHeader] + internal;
+		result = result + [internalHeader] + internal;
 	}
 
 	if len(system) > 0
@@ -302,6 +356,28 @@ func SectionizedDevices(devices)
 	}
 
 	return result;
+}
+
+#@ <VolumesForDisk(devices, diskName)>
+#@ Returns every device in ''devices'' whose parent disk is ''diskName''.
+
+func VolumesForDisk(devices, diskName)
+{
+	var volumes = [];
+
+	if diskName == "" { return volumes; }
+
+	for deviceIndex = 1 to len(devices)
+	{
+		var device = devices[deviceIndex];
+
+		if device["disk"] != diskName { continue; }
+		if device["type"] == "disk" and device["fstype"] == "" { continue; }
+
+		append(volumes, device);
+	}
+
+	return volumes;
 }
 
 #@ <IsLuks(dev)>
@@ -322,9 +398,9 @@ func IsLuksUnlocked(dev, devices)
 
 	var name = dev["name"];
 
-	for i = 1 to len(devices)
+	for deviceIndex = 1 to len(devices)
 	{
-		var other = devices[i];
+		var other = devices[deviceIndex];
 
 		if other["type"] == "crypt"
 		{
@@ -375,16 +451,16 @@ func IsMountable(dev)
 }
 
 #@ <IsLuksCryptChildMounted(dev, devices)>
-#@ Returns ''true'' if the unlocked LUKS ''dev''ice has a crypt child that is currently
-#@ mounted.
+#@ Returns ''true'' if the unlocked LUKS ''dev''ice has a crypt child that is
+#@ currently mounted.
 
 func IsLuksCryptChildMounted(dev, devices)
 {
 	var name = dev["name"];
 
-	for i = 1 to len(devices)
+	for deviceIndex = 1 to len(devices)
 	{
-		var other = devices[i];
+		var other = devices[deviceIndex];
 
 		if other["type"] == "crypt" and other["parent"] == name and IsMounted(other)
 		{
@@ -401,16 +477,15 @@ func IsLuksCryptChildMounted(dev, devices)
 
 func DiskHasActiveMember(diskName, devices)
 {
-	for i = 1 to len(devices)
+	for deviceIndex = 1 to len(devices)
 	{
-		var d = devices[i];
+		var device = devices[deviceIndex];
 
-		if not IsDeviceEntry(d) { continue; }
-		if d["disk"] != diskName { continue; }
+		if device["disk"] != diskName { continue; }
 
-		if IsMounted(d) { return true; }
-		if IsSwap(d) { return true; }
-		if IsLuks(d) and IsLuksUnlocked(d, devices) { return true; }
+		if IsMounted(device) { return true; }
+		if IsSwap(device) { return true; }
+		if IsLuks(device) and IsLuksUnlocked(device, devices) { return true; }
 	}
 
 	return false;
@@ -424,8 +499,8 @@ func DevicePath(dev)
 	var name = dev["name"];
 	var devType = dev["type"];
 
-	# crypt and lvm devices resolve under /dev/mapper/ since they are device mapper
-	# nodes
+	# crypt and lvm devices resolve under /dev/mapper/ since they are device
+	# mapper nodes
 	if devType == "crypt" or devType == "lvm" { return "/dev/mapper/" + name; }
 
 	return "/dev/" + name;

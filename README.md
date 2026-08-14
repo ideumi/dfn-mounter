@@ -14,14 +14,13 @@ This was originally meant to be an integrated component of depthfinder itself, h
 
 - Easy to use
 - Minimalist
-- Grouped device and partition overview
-- Device insight dialog (fstype, serial, UUID, model, etc.)
+- Two-panel layout with a grouped disks sidebar and a volume browser for the selected disk
+- Disk and volume info dialogs (fstype, serial, UUID, model, etc.)
 - Mount / unmount partitions
 - Unlock / lock LUKS containers
 - LVM logical volume support (with LUKS-on-LVM)
 - Eject / power-off removable devices
 - Extensive safety guards
-- Super small at only ~1100 LOC with ~1900 total lines
 
 ## Getting dfn-mounter
 
@@ -41,9 +40,11 @@ sudo install -m 755 dfn-mounter /usr/bin/dfn-mounter
 dfn-mounter
 ```
 
+5. You may want to change the **accent color**, by default it is a pure blue (because i like it). If you don't like it or it doesn't match the theme you are going for, you can set your own RGB color: change `DFNCOLORACCENT` in [`constants.chh`](src/constants.chh) and [build](#building) again.
+
 ## Requirements
 
-- [Chippy](https://codeberg.org/ideumi/chippy) >= 1.1.0
+- [Chippy](https://codeberg.org/ideumi/chippy) >= 1.1.1
 - make
 - git
 
@@ -71,12 +72,15 @@ sudo make uninstall
 
 ## Security
 
-dfn-mounter can **never** see your LUKS passphrase and thus cannot save it, e.g. for "convenience", as this would be a security risk. Unlocking is entirely done via `udisksctl`, which reads your passphrase directly. See the implementation of `UnlockLuks(dev)` in [udisks.chh](src/udisks.chh). Your passphrase must be entered every time. This is intentional.
+dfn-mounter can **never** see your LUKS passphrase and thus cannot save it, e.g. for "convenience", as this would be a security risk. Unlocking is entirely done via `udisksctl`, which reads your passphrase directly. See the implementation of `UnlockLuks(dev)` in [`udisks.chh`](src/udisks.chh). Your passphrase must be entered every time. This is intentional.
 
 ## Known Issues
 
 - Window resizing logic does not trigger when a dialog is opened, only after it is closed
 	- This is intentional for now
+
+- The mounter cannot see MTP (Media Transfer Protocol) or PTP (Picture Transfer Protocol) devices
+	- I have no plans to fix this
 
 ## License
 

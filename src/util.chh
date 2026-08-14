@@ -3,12 +3,12 @@
 # dfn-mounter - util.chh
 #
 
-#@ <ShellEscape(s)>
+#@ <ShellEscape(text)>
 #@ Escapes a string for safe use in shell commands.
 
-func ShellEscape(s)
+func ShellEscape(text)
 {
-	var escaped = replace(s, "'", "'\\''");
+	var escaped = replace(text, "'", "'\\''");
 
 	return "'" + escaped + "'";
 }

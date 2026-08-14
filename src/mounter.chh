@@ -23,38 +23,17 @@ func MounterCurrentState()
 {
 	return m[
 		"devices": mounterDevices,
+		"disks": mounterDisks,
+		"selectedDisk": mounterSelectedDisk,
+		"diskScrollOffset": mounterDiskScrollOffset,
+		"activeDisk": mounterActiveDisk,
+		"volumes": mounterVolumes,
 		"selectedIndex": mounterSelectedIndex,
 		"scrollOffset": mounterScrollOffset,
+		"focusPanel": mounterFocusPanel,
 		"showKeybinds": mounterShowKeybinds,
 		"inDialog": mounterInDialog
 	];
-}
-
-#@ <EnterMounterDialog()>
-#@ Sets the dialog flag and tells the winsize actor to suppress repaints until
-#@ the dialog returns.
-
-func EnterMounterDialog()
-{
-	mounterInDialog = true;
-
-	if not iserr(mounterWinsizeHandle)
-	{
-		send(mounterWinsizeHandle, MounterCurrentState());
-	}
-}
-
-#@ <ExitMounterDialog()>
-#@ Clears the dialog flag.
-
-func ExitMounterDialog()
-{
-	mounterInDialog = false;
-
-	if not iserr(mounterWinsizeHandle)
-	{
-		send(mounterWinsizeHandle, MounterCurrentState());
-	}
 }
 
 #@ <MounterWinChActor()>
@@ -90,11 +69,19 @@ func MounterWinChActor()
 			continue;
 		}
 
+		# Re-clamp against the new viewport before drawing.
 		mounterDevices = state["devices"];
+		mounterDisks = state["disks"];
+		mounterSelectedDisk = state["selectedDisk"];
+		mounterDiskScrollOffset = state["diskScrollOffset"];
+		mounterActiveDisk = state["activeDisk"];
+		mounterVolumes = state["volumes"];
 		mounterSelectedIndex = state["selectedIndex"];
 		mounterScrollOffset = state["scrollOffset"];
+		mounterFocusPanel = state["focusPanel"];
 		mounterShowKeybinds = state["showKeybinds"];
 
+		MounterAdjustDiskScroll();
 		MounterAdjustScroll();
 
 		ClearScreen();
@@ -103,40 +90,154 @@ func MounterWinChActor()
 	}
 }
 
+#@ <MounterHandleSidebarInput(key)>
+#@ Handles a ''key'' press while the disk sidebar has focus.
+
+func MounterHandleSidebarInput(key)
+{
+	if key == BFKEYENTER or key == BFKEYRIGHT
+	{
+		var disk = SelectedDisk();
+
+		if not iserr(disk)
+		{
+			NavigateToDisk(disk);
+
+			mounterFocusPanel = FOCUSVOLUMES;
+		}
+	}
+	elseif key == BFKEYUP
+	{
+		MoveDiskSelection(-1);
+	}
+	elseif key == BFKEYDOWN
+	{
+		MoveDiskSelection(1);
+	}
+	elseif key == BFKEYHOME or key == BFKEYPAGEUP
+	{
+		MoveDiskSelection(-len(mounterDisks));
+	}
+	elseif key == BFKEYEND or key == BFKEYPAGEDOWN
+	{
+		MoveDiskSelection(len(mounterDisks));
+	}
+	elseif key == KEYI or key == KEYII
+	{
+		ActionShowDiskInfoSelected();
+	}
+	elseif key == KEYE or key == KEYEE
+	{
+		ActionEjectSelectedDisk();
+	}
+}
+
+#@ <MounterHandleVolumeInput(key)>
+#@ Handles a ''key'' press while the volume list has focus.
+
+func MounterHandleVolumeInput(key)
+{
+	var pageSize = GetVisibleVolumeCount();
+
+	if key == BFKEYENTER or key == BFKEYRIGHT
+	{
+		var volume = SelectedVolume();
+
+		if not iserr(volume)
+		{
+			if IsLuks(volume) and not IsLuksUnlocked(volume, mounterDevices)
+			{
+				ActionUnlockSelected();
+			}
+			elseif not IsMounted(volume)
+			{
+				ActionMountSelected();
+			}
+			else
+			{
+				ActionOpenInDfn();
+			}
+		}
+	}
+	elseif key == BFKEYLEFT
+	{
+		var volume = SelectedVolume();
+
+		if not iserr(volume)
+		{
+			if IsLuks(volume) and IsLuksUnlocked(volume, mounterDevices)
+			{
+				ActionLockSelected();
+			}
+			elseif IsMounted(volume)
+			{
+				ActionUnmountSelected();
+			}
+		}
+	}
+	elseif key == BFKEYUP
+	{
+		MoveSelectionRedraw(-1);
+	}
+	elseif key == BFKEYDOWN
+	{
+		MoveSelectionRedraw(1);
+	}
+	elseif key == BFKEYPAGEUP
+	{
+		MoveSelection(-pageSize);
+	}
+	elseif key == BFKEYPAGEDOWN
+	{
+		MoveSelection(pageSize);
+	}
+	elseif key == BFKEYHOME
+	{
+		MoveSelection(-len(mounterVolumes));
+	}
+	elseif key == BFKEYEND
+	{
+		MoveSelection(len(mounterVolumes));
+	}
+	elseif key == KEYI or key == KEYII
+	{
+		ActionShowInfoSelected();
+	}
+}
+
 #@ <MounterMainLoop()>
 #@ Mounter event loop.
 
 func MounterMainLoop()
 {
-	var running = true;
-
-	while running
+	while true
 	{
 		mounterInDialog = false;
 
 		MounterUpdateScreenSize();
 
+		# Do not render when it is expected that rendering causes broken elements
+		# on the screen.
 		if mounterScreenWidth < MINTERMWIDTH or mounterScreenHeight < MINTERMHEIGHT
 		{
 			ClearScreen();
 			CursorTo(1, 1);
-			Print("Terminal too small");
 
+			Print("Terminal too small");
 			getch();
 
-			MounterRefreshDevices();
 			ClearScreen();
+			MounterRefreshDevices();
 
 			mounterSkipFullRedraw = false;
 
 			continue;
 		}
 
-		# Viewport may have changed while getch() was blocked. Re-clamp so the
-		# selection stays visible.
+		# Viewport size may have changed while getch() was blocked. Re-clamp so
+		# the selection stays visible.
+		MounterAdjustDiskScroll();
 		MounterAdjustScroll();
-
-		var pageSize = GetVisibleDeviceCount();
 
 		if mounterSkipFullRedraw { mounterSkipFullRedraw = false; }
 		else { MounterDrawScreen(); }
@@ -149,92 +250,28 @@ func MounterMainLoop()
 		var key = getch();
 
 		MounterUpdateScreenSize();
+
+		# Re-clamp before input handlers run so they compute against the
+		# same scrollOffset the actor used to redraw.
+		MounterAdjustDiskScroll();
 		MounterAdjustScroll();
 
+		# Handled here since these binds should work in both sidebar and volume
+		# focus modes
 		if key == BFKEYESC
 		{
-			var confirmed = MounterShowConfirm("Do you really want to exit?");
-
-			if not iserr(confirmed) and confirmed { running = false; }
-			else { ClearScreen(); }
+			if MounterConfirmExit() { return; }
 		}
-		elseif key == BFKEYENTER or key == BFKEYRIGHT
+		elseif key == BFKEYTAB
 		{
-			var dev = SelectedDevice();
-
-			if not iserr(dev)
+			if mounterFocusPanel == FOCUSSIDEBAR
 			{
-				if IsLuks(dev) and not IsLuksUnlocked(dev, mounterDevices)
-				{
-					ActionUnlockSelected();
-				}
-				elseif not IsMounted(dev)
-				{
-					ActionMountSelected();
-				}
+				mounterFocusPanel = FOCUSVOLUMES;
 			}
-		}
-		elseif key == BFKEYLEFT
-		{
-			var dev = SelectedDevice();
-
-			if not iserr(dev)
+			else
 			{
-				if IsLuks(dev) and IsLuksUnlocked(dev, mounterDevices)
-				{
-					ActionLockSelected();
-				}
-				elseif IsMounted(dev)
-				{
-					ActionUnmountSelected();
-				}
+				mounterFocusPanel = FOCUSSIDEBAR;
 			}
-		}
-		elseif key == BFKEYUP
-		{
-			MoveSelectionRedraw(-1);
-		}
-		elseif key == BFKEYDOWN
-		{
-			MoveSelectionRedraw(1);
-		}
-		elseif key == BFKEYPAGEUP
-		{
-			MoveSelection(-pageSize);
-		}
-		elseif key == BFKEYPAGEDOWN
-		{
-			MoveSelection(pageSize);
-		}
-		elseif key == BFKEYHOME
-		{
-			if len(mounterDevices) > 0
-			{
-				mounterSelectedIndex = SnapToDevice(1, 1);
-				mounterScrollOffset = 1;
-			}
-		}
-		elseif key == BFKEYEND
-		{
-			if len(mounterDevices) > 0
-			{
-				mounterSelectedIndex = SnapToDevice(len(mounterDevices), -1);
-
-				MounterAdjustScroll();
-			}
-		}
-		elseif key == KEYR or key == KEYRR
-		{
-			MounterRefreshDevices();
-			ClearScreen();
-		}
-		elseif key == KEYE or key == KEYEE
-		{
-			ActionEjectSelected();
-		}
-		elseif key == KEYI or key == KEYII
-		{
-			ActionShowInfoSelected();
 		}
 		elseif key == KEYDOT
 		{
@@ -244,7 +281,30 @@ func MounterMainLoop()
 		}
 		elseif key == KEYHASH
 		{
-			MounterShowDebug();
+			MounterShowAbout();
+		}
+		elseif key == KEYR or key == KEYRR
+		{
+			MounterRefreshDevices();
+			ClearScreen();
+		}
+		elseif mounterFocusPanel == FOCUSSIDEBAR
+		{
+			MounterHandleSidebarInput(key);
+		}
+		else
+		{
+			MounterHandleVolumeInput(key);
+		}
+
+		# A winch arriving after the handler ran but before the next iteration
+		# would have the actor draw its pre keypress state, so send it now.
+
+		# NOTE: This is more theoretical and less a practical issue, if it causes
+		# perf issues (shouldn't), get rid of it
+		if not iserr(mounterWinsizeHandle)
+		{
+			send(mounterWinsizeHandle, MounterCurrentState());
 		}
 	}
 }

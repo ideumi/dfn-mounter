@@ -36,22 +36,6 @@ func UdisksAction(dev, action)
 	return RunWithError(UDISKSCTLPATH + " " + action + " -b " + ShellEscape(path));
 }
 
-#@ <MountDevice(dev)>
-#@ Mounts a ''dev''ice using udisksctl. Returns ''ok'' or error message string.
-
-func MountDevice(dev)
-{
-	return UdisksAction(dev, "mount");
-}
-
-#@ <UnmountDevice(dev)>
-#@ Unmounts a ''dev''ice using udisksctl. Returns ''ok'' or error message string.
-
-func UnmountDevice(dev)
-{
-	return UdisksAction(dev, "unmount");
-}
-
 #@ <UnlockLuks(dev)>
 #@ Unlocks a LUKS ''dev''ice using udisksctl. This temporarily exits the TUI to
 #@ let udisksctl handle passphrase input itself, so we can't capture anything and
@@ -59,52 +43,19 @@ func UnmountDevice(dev)
 
 func UnlockLuks(dev)
 {
-	EnterMounterDialog();
-
 	var path = DevicePath(dev);
-
-	ShowCursor();
-	ClearScreen();
-	CursorTo(1, 1);
-
-	Println("Unlocking " + DeviceDisplayName(dev) + ":");
 
 	var cmd = UDISKSCTLPATH + " unlock -b " + ShellEscape(path) + TTYREDIRECT;
 
-	var success = isok(RunCheck(cmd));
-
-	if not success
-	{
-		Println("");
-		Print("Unlock failed. Press any key to continue.");
-
-		getch();
-	}
-
-	HideCursor();
-	ClearScreen();
-	ExitMounterDialog();
-
-	if success { return ok; }
+	if isok(RunCheck(cmd)) { return ok; }
 
 	return err;
 }
 
-#@ <LockLuks(dev)>
-#@ Locks a LUKS ''dev''ice using udisksctl. Returns ''ok'' or error message string.
+#@ <EjectDisk(disk)>
+#@ Ejects a ''disk'' by powering it off. Returns ''ok'' or error message string.
 
-func LockLuks(dev)
+func EjectDisk(disk)
 {
-	return UdisksAction(dev, "lock");
-}
-
-#@ <EjectDevice(dev)>
-#@ Ejects a ''dev''ice by powering off its parent disk. Returns ''ok'' or error message
-#@ string.
-
-func EjectDevice(dev)
-{
-	var disk = dev["disk"];
-
-	return RunWithError(UDISKSCTLPATH + " power-off -b " + ShellEscape("/dev/" + disk));
+	return RunWithError(UDISKSCTLPATH + " power-off -b " + ShellEscape("/dev/" + disk["name"]));
 }

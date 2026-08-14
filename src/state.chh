@@ -4,8 +4,17 @@
 #
 
 var mounterDevices = [];
+
+var mounterDisks = [];
+var mounterSelectedDisk = 1;
+var mounterDiskScrollOffset = 1;
+var mounterActiveDisk = "";
+
+var mounterVolumes = [];
 var mounterSelectedIndex = 1;
 var mounterScrollOffset = 1;
+
+var mounterFocusPanel = FOCUSSIDEBAR;
 
 var mounterScreenWidth = MINTERMWIDTH;
 var mounterScreenHeight = MINTERMHEIGHT;

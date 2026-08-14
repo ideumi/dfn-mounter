@@ -19,6 +19,7 @@ load("constants.chh");
 load("util.chh");
 load("state.chh");
 load("devices.chh");
+load("selection.chh");
 load("udisks.chh");
 load("ui.chh");
 load("dialogs.chh");
