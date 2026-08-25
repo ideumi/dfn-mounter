@@ -4,7 +4,8 @@
 #
 
 #@ <DeviceStatusText(dev, devices)>
-#@ Returns the status string used in the STATUS column and the volume info dialog.
+#@ Returns the status string used in the STATUS column and the volume info dialog
+#@ for ''dev''ice in ''devices''.
 
 func DeviceStatusText(dev, devices)
 {
@@ -32,16 +33,17 @@ func SerialTail(serial)
 {
 	if serial == "" { return ""; }
 
+	var tailLen = 6;
 	var serialLen = len(serial);
 
-	if serialLen <= 6 { return serial; }
+	if serialLen <= tailLen { return serial; }
 
-	return "..." + Right(serial, 6);
+	return "..." + Right(serial, tailLen);
 }
 
 #@ <DiskShortLabel(dev)>
-#@ Returns a label for the parent disk: ''"<model> (...SerialTail(serial))"''
-#@ when both are available, otherwise the disk name path.
+#@ Returns a label for the parent disk, the model with the ''SerialTail(serial)''
+#@ in brackets when both are known, otherwise the disk name path.
 
 func DiskShortLabel(dev)
 {
@@ -62,7 +64,8 @@ func DiskShortLabel(dev)
 }
 
 #@ <DeviceTypeDescription(dev)>
-#@ Returns a description of a ''dev''ice's role.
+#@ Returns a short description of what the ''dev''ice is, e.g "Disk", "Partition"
+#@  or "LUKS container".
 
 func DeviceTypeDescription(dev)
 {
@@ -136,7 +139,10 @@ func MounterGetColumnWidths(width)
 	var sizeColWidth = 7;
 	var fsColWidth = 11;
 	var statusColWidth = 19;
-	var nameColWidth = width - fsColWidth - statusColWidth - sizeColWidth - 3;
+
+	# The name column gets whatever width is left after the other three columns
+	# took theirs
+	var nameColWidth = width - fsColWidth - statusColWidth - sizeColWidth;
 
 	return [nameColWidth, fsColWidth, statusColWidth, sizeColWidth];
 }
@@ -146,9 +152,14 @@ func MounterGetColumnWidths(width)
 
 func GetMounterRegion(screenWidth, screenHeight)
 {
+	# The sidebar takes columns 1 to SIDEBARWIDTH, and the separator line is on
+	# column SIDEBARWIDTH. The volume list starts two columns to the right of it,
+	# with one blank column in between.
 	var x = SIDEBARWIDTH + 2;
 	var y = 1;
 	var width = screenWidth - SIDEBARWIDTH - 2;
+
+	# Keybinds bar state is taken into account in MounterBottomReserve()
 	var height = screenHeight - MounterBottomReserve();
 
 	return [x, y, width, height];
@@ -180,17 +191,20 @@ func MounterSidebarEntryHeight(entry, isFirst)
 }
 
 #@ <MounterLastDrawableDisk(offset)>
-#@ Returns the index of the last sidebar entry that fits when the list starts at
-#@ ''offset'', or ''offset - 1'' if none fit.
+#@ Returns the index of the last sidebar entry that fits in the list when the
+#@ list starts at ''offset'' (the first visible entry idx in ''mounterDisks''),
+#@ or ''offset - 1'' if none fit.
 
 func MounterLastDrawableDisk(offset)
 {
 	var region = GetMounterSidebarRegion(mounterScreenHeight);
 
-	var lastY = region[2] + region[4] - 1;
+	var lastY = region[2] + region[4] - 1; # y pos + height -1
 	var rowY = region[2];
 	var last = offset - 1;
 
+	# Walk down the sidebar from offset, one entry at a time, and stop when the
+	# next entry would reach below the panel
 	for idx = offset to len(mounterDisks)
 	{
 		var entryHeight = MounterSidebarEntryHeight(mounterDisks[idx], idx == offset);
@@ -220,13 +234,15 @@ func GetMounterListRegion(screenWidth, screenHeight)
 	var headerY = region[2] + TITLEBARHEIGHT;
 	var listY = headerY + LISTHEADERHEIGHT;
 
+	# List height runs from listY to the bottom of the panel
 	return [region[1], headerY, listY, region[3], region[2] + region[4] - listY];
 }
 
-#@ <MounterDrawTitleBar(x, y, width)>
-#@ Draws the path of the currently selected volume above the volume list.
+#@ <MounterDrawHeaderBar(x, y, width)>
+#@ Renders the header bar. The header bar is above the volume list and contains
+#@ the currently selected volume path row and one blank padding line below it.
 
-func MounterDrawTitleBar(x, y, width)
+func MounterDrawHeaderBar(x, y, width)
 {
 	BFClearRegion(x, y, width, TITLEBARHEIGHT);
 
@@ -260,12 +276,12 @@ func MounterDrawHeader(x, y, width)
 	var statusColWidth = cols[3];
 	var sizeColWidth = cols[4];
 
-	var nameHeader = BFPadText("  VOLUME", nameColWidth, BFALIGNLEFT);
+	var nameHeader = BFPadText(VOLUMENAMEPREFIX + "VOLUME", nameColWidth, BFALIGNLEFT);
 	var fsHeader = BFPadText("FSTYPE", fsColWidth, BFALIGNLEFT);
 	var statusHeader = BFPadText("STATUS", statusColWidth, BFALIGNRIGHT);
 	var sizeHeader = BFPadText("SIZE", sizeColWidth, BFALIGNRIGHT);
 
-	var header = nameHeader + " " + fsHeader + " " + statusHeader + " " + sizeHeader;
+	var header = nameHeader + fsHeader + statusHeader + sizeHeader;
 
 	SetAttribute(COLORBOLD);
 	BFDrawText(x, y, header);
@@ -273,7 +289,7 @@ func MounterDrawHeader(x, y, width)
 }
 
 #@ <MounterDrawVolumeRow(x, baseY, width, nameColWidth, fsColWidth, statusColWidth, sizeColWidth, idx)>
-#@ Draws a single volume list row at position ''baseY''.
+#@ Draws the volume list row of volume ''idx'' at position ''baseY''.
 
 func MounterDrawVolumeRow(x, baseY, width, nameColWidth, fsColWidth, statusColWidth, sizeColWidth, idx)
 {
@@ -305,10 +321,10 @@ func MounterDrawVolumeRow(x, baseY, width, nameColWidth, fsColWidth, statusColWi
 
 		var status = DeviceStatusText(volume, mounterDevices);
 
-		# Build columns
-		var nameText = "  " + displayName;
-		nameText = BFClipText(nameText, nameColWidth);
-		nameText = BFPadText(nameText, nameColWidth, BFALIGNLEFT);
+		# The name column holds the prefix plus the name once rendered, so the
+		# name is clipped to nameColWidth - len(VOLUMENAMEPREFIX) to account for
+		# it
+		var nameText = BFClipText(displayName, nameColWidth - len(VOLUMENAMEPREFIX));
 
 		var fsText = BFClipText(volume["fstype"], fsColWidth);
 		fsText = BFPadText(fsText, fsColWidth, BFALIGNLEFT);
@@ -319,11 +335,11 @@ func MounterDrawVolumeRow(x, baseY, width, nameColWidth, fsColWidth, statusColWi
 		var statusText = BFTruncateMiddle(status, statusColWidth);
 		statusText = BFPadText(statusText, statusColWidth, BFALIGNRIGHT);
 
-		var rowText = nameText + " " + fsText + " " + statusText + " " + sizeText;
+		var rowText = BFPadText(VOLUMENAMEPREFIX + nameText, nameColWidth, BFALIGNLEFT) + fsText + statusText + sizeText;
 
 		BFDrawText(x, baseY, rowText);
 
-		# Spacing
+		# The blank padding row below the entry
 		BFDrawText(x, baseY + 1, emptyRow);
 	}
 	else
@@ -342,6 +358,7 @@ func MounterDrawEmptyState(x, y, width, height)
 {
 	BFClearRegion(x, y, width, height);
 
+	# The placeholder is 3 rows tall, so it cannot be drawn on a shorter panel
 	if height < 3 { return; }
 
 	var origin = BFCenterRect([x, y, width, height], width, 3);
@@ -390,8 +407,8 @@ func MounterDrawVolumeList(x, y, width, height)
 }
 
 #@ <MounterRedrawVolumeRow(idx)>
-#@ Redraws the volume row for entry ''idx'' in place if it is within the visible
-#@ viewport.
+#@ Redraws the visible row of entry ''idx''. Does nothing when the entry is
+#@ not on screen.
 
 func MounterRedrawVolumeRow(idx)
 {
@@ -399,6 +416,7 @@ func MounterRedrawVolumeRow(idx)
 
 	var visibleVolumes = int(region[5] / VOLUMEROWHEIGHT);
 
+	# Which row of the visible list the entry is on
 	var volumeRow = idx - mounterScrollOffset + 1;
 
 	if volumeRow < 1 or volumeRow > visibleVolumes { return; }
@@ -416,7 +434,11 @@ func MounterRedrawVolumeRow(idx)
 
 func MounterDrawSidebarRow(x, y, width, idx, isFirst)
 {
+	# rowWidth leaves out the separator column at the right edge of the sidebar,
 	var rowWidth = width - 1;
+
+	# textWidth leaves out the 2 columns that hold the browsers text prefix /
+	# selection marker
 	var textWidth = rowWidth - 2;
 
 	var emptyRow = BFPadText("", rowWidth, BFALIGNLEFT);
@@ -432,7 +454,7 @@ func MounterDrawSidebarRow(x, y, width, idx, isFirst)
 		{
 			BFDrawText(x, y, emptyRow);
 
-			headerY = y + 1;
+			headerY = y + SIDEBARSECTIONGAP;
 		}
 
 		SetAttribute(COLORBOLD);
@@ -456,6 +478,7 @@ func MounterDrawSidebarRow(x, y, width, idx, isFirst)
 	var detail = BFPadText(indicator + BFClipText(SidebarDiskDetail(entry), textWidth),
 		rowWidth, BFALIGNLEFT);
 
+	# The cursor is on this entry
 	if isSelected
 	{
 		SetAttribute(COLORBLACK);
@@ -467,7 +490,7 @@ func MounterDrawSidebarRow(x, y, width, idx, isFirst)
 
 		SetAttribute(COLORRESET);
 	}
-	elseif entry["name"] == mounterActiveDisk
+	elseif entry["name"] == mounterActiveDisk # the disk whose volumes are shown
 	{
 		SetAttribute(COLORWHITE);
 		SetAttribute(COLORBOLD);
@@ -507,6 +530,7 @@ func MounterDrawSidebar(x, y, width, height)
 		rowY = rowY + MounterSidebarEntryHeight(mounterDisks[idx], isFirst);
 	}
 
+	# width - 1: the separator column is drawn by MounterDrawScreen
 	BFClearRegion(x, rowY, width - 1, lastY - rowY + 1);
 }
 
@@ -546,6 +570,7 @@ func MounterDrawBottom()
 
 func MounterDrawBottomHint()
 {
+	# width stops before the separator column
 	BFClearRegion(1, mounterScreenHeight, SIDEBARWIDTH - 1, 1);
 
 	SetFGColor256(DFNCOLORDIM);
@@ -589,6 +614,9 @@ func MounterDrawKeybindsBar()
 
 	append(rows, []);
 
+	# mounterScreenHeight is the screen height, not the bar's position, the bar
+	# is KEYBINDSBARHEIGHT rows tall and sits at the bottom of the screen, so its
+	# top row is: mounterScreenHeight - KEYBINDSBARHEIGHT + 1
 	BFKeybindsBar(1, mounterScreenHeight - KEYBINDSBARHEIGHT + 1, mounterScreenWidth, rows);
 }
 
@@ -611,7 +639,7 @@ func MounterDrawScreen()
 	MounterDrawSidebar(sidebar[1], sidebar[2], sidebar[3], sidebar[4]);
 	MounterDrawVerticalSeparator(SIDEBARWIDTH, 1, separatorHeight);
 
-	MounterDrawTitleBar(panel[1], panel[2], panel[3]);
+	MounterDrawHeaderBar(panel[1], panel[2], panel[3]);
 
 	if len(mounterVolumes) == 0
 	{

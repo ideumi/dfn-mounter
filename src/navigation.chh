@@ -4,8 +4,8 @@
 #
 
 #@ <SnapToDisk(start, direction)>
-#@ Returns the nearest sidebar index that points at a disk and not a section
-#@ header.
+#@ Returns the nearest sidebar index that points at a disk entry and not a
+#@ section header.
 
 func SnapToDisk(start, direction)
 {
@@ -13,6 +13,7 @@ func SnapToDisk(start, direction)
 
 	var idx = start;
 
+	# Walk in the requested direction to the nearest disk entry
 	while idx >= 1 and idx <= len(mounterDisks)
 	{
 		if IsDeviceEntry(mounterDisks[idx]) { return idx; }
@@ -20,6 +21,7 @@ func SnapToDisk(start, direction)
 		idx = idx + direction;
 	}
 
+	# Then try the opposite direction from the start
 	var opposite = -direction;
 
 	idx = start;
@@ -31,28 +33,41 @@ func SnapToDisk(start, direction)
 		idx = idx + opposite;
 	}
 
+	# No disk entry can be found, keep the original index
 	return start;
 }
 
 #@ <MounterAdjustDiskScroll()>
-#@ Adjusts the sidebar scroll offset to keep the selected disk visible.
+#@ Keeps the selected disk visible in the sidebar.
 
 func MounterAdjustDiskScroll()
 {
 	if mounterDiskScrollOffset < 1 { mounterDiskScrollOffset = 1; }
 
+	# mounterDiskScrollOffset is the index of the first visible entry
+
+	# Entries have different heights (section headers are taller than disk rows),
+	# so which entries are visible depends on where the list starts.
+	# MounterLastDrawableDisk(offset) returns the index of the last entry that
+	# fits when the list starts at offset
+
+	# Selection above the sidebar: start the sidebar at the selection
 	if mounterSelectedDisk < mounterDiskScrollOffset
 	{
 		mounterDiskScrollOffset = mounterSelectedDisk;
 	}
 
+	# Selection below the visible area: because entry heights vary, there is no
+	# direct offset to jump to, so step the sidebar down one entry at a time
+	# until the selection fits
 	while mounterSelectedDisk > MounterLastDrawableDisk(mounterDiskScrollOffset)
 		and mounterDiskScrollOffset < len(mounterDisks)
 	{
 		mounterDiskScrollOffset = mounterDiskScrollOffset + 1;
 	}
 
-	# Avoid empty rows below the last disk when disks fit the viewport.
+	# If the list now fits in the sidebar completely, scroll back up: step the
+	# offset up until going higher would hide the last entry
 	while mounterDiskScrollOffset > 1
 		and MounterLastDrawableDisk(mounterDiskScrollOffset - 1) >= len(mounterDisks)
 	{
@@ -89,6 +104,7 @@ func NavigateToDisk(disk)
 	mounterActiveDisk = disk["name"];
 	mounterVolumes = VolumesForDisk(mounterDevices, mounterActiveDisk);
 
+	# Start on the first volume of the new disk, scrolled to the top
 	mounterSelectedIndex = 1;
 	mounterScrollOffset = 1;
 
@@ -102,27 +118,41 @@ func GetVisibleVolumeCount()
 {
 	var region = GetMounterListRegion(mounterScreenWidth, mounterScreenHeight);
 
+	# Each entry occupies VOLUMEROWHEIGHT rows on screen
 	return int(region[5] / VOLUMEROWHEIGHT);
 }
 
 #@ <MounterAdjustScroll()>
-#@ Adjusts scroll offset to keep selection visible.
+#@ Keeps the selection visible in the volume list.
 
 func MounterAdjustScroll()
 {
 	var visibleVolumes = GetVisibleVolumeCount();
 
+	# ''mounterScrollOffset'' is the index of the first visible row.
+
+	# The volume list shows rows from mounterScrollOffset to
+	# mounterScrollOffset + visibleVolumes - 1, each entry takes VOLUMEROWHEIGHT
+	# rows on screen
+
+	# Selection above the volume list: start the volume list at the selection
 	if mounterSelectedIndex < mounterScrollOffset
 	{
 		mounterScrollOffset = mounterSelectedIndex;
 	}
 
+	# Selection below the volume list: slide the volume list down until the
+	# selection is its last visible row
 	if mounterSelectedIndex >= mounterScrollOffset + visibleVolumes
 	{
 		mounterScrollOffset = mounterSelectedIndex - visibleVolumes + 1;
 	}
 
-	# Avoid empty rows below the last volume when volumes fit the viewport.
+	# After this, the panel is in one of two states. If the list is longer than
+	# the panel, every row holds a real entry, the selection is one of them, and
+	# the furthest top row is the one where the last visible entry is the last
+	# entry in the list. If the list is shorter, the entries sit on the top rows,
+	# the rest is blank, and the top row stays at 1
 	var maxOffset = len(mounterVolumes) - visibleVolumes + 1;
 
 	if maxOffset < 1 { maxOffset = 1; }
@@ -165,7 +195,7 @@ func MoveSelectionRedraw(delta)
 	{
 		var panel = GetMounterRegion(mounterScreenWidth, mounterScreenHeight);
 
-		MounterDrawTitleBar(panel[1], panel[2], panel[3]);
+		MounterDrawHeaderBar(panel[1], panel[2], panel[3]);
 		MounterRedrawVolumeRow(oldIndex);
 		MounterRedrawVolumeRow(mounterSelectedIndex);
 

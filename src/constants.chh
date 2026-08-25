@@ -8,7 +8,7 @@
 #@ <VERSION>
 #@ Program version string
 
-var VERSION = "1.0.4";
+var VERSION = "1.0.5";
 
 #@ <PROGRAMNAME>
 #@ Program display name
@@ -28,9 +28,14 @@ var DIALOGWIDTH = 55;
 var KEYBINDSBARHEIGHT = 3;
 
 #@ <VOLUMEROWHEIGHT>
-#@ Height of each volume entry
+#@ Height of each volume entry (entry itself + one padding row)
 
 var VOLUMEROWHEIGHT = 2;
+
+#@ <VOLUMENAMEPREFIX>
+#@ Prefix drawn before the name in a volume row and in the column header
+
+var VOLUMENAMEPREFIX = "  ";
 
 #@ <SIDEBARWIDTH>
 #@ Width of the disk sidebar
@@ -48,17 +53,18 @@ var SIDEBARROWHEIGHT = 2;
 var SIDEBARSECTIONHEIGHT = 2;
 
 #@ <SIDEBARSECTIONGAP>
-#@ Extra blank row above a section header
+#@ Extra blank padding row above a section header
 
 var SIDEBARSECTIONGAP = 1;
 
 #@ <TITLEBARHEIGHT>
-#@ Rows the volume panel title bar occupies
+#@ Rows reserved at the top of the volume panel, above the volume list (the path
+#@ row + one padding row)
 
 var TITLEBARHEIGHT = 2;
 
 #@ <LISTHEADERHEIGHT>
-#@ Rows the volume list column header occupies
+#@ Rows the volume list column header occupies (the header row + one padding row)
 
 var LISTHEADERHEIGHT = 2;
 
