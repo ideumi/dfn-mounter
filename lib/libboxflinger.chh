@@ -1,6 +1,6 @@
 #!/usr/bin/chippy
 #
-# boxflinger V-1.0.11
+# boxflinger V-1.0.12
 #
 
 # Copyright (c) 2025-2026 ideumi
@@ -23,10 +23,10 @@
 #
 
 #@ <BFVERSION>
-#@ (2026-06-19)
+#@ (2026-08-26)
 #@ Library version
 
-var BFVERSION = "1.0.11";
+var BFVERSION = "1.0.12";
 
 #@ <BFALIGNLEFT>
 #@ (2025-09-28)
@@ -506,7 +506,7 @@ func BFClearRegion(x, y, width, height)
 #@
 #@ Draws a horizontal progress bar showing completion percentage at position
 #@ ''x'' and ''y'' with ''width'' characters. Progress is calculated as ''current
-#@ / total'' and clamped to 0-100% range. The ''style'' can be ''BFBOXSINGLE'',
+#@ / total'' and kept within the 0-100% range. The ''style'' can be ''BFBOXSINGLE'',
 #@ ''BFBOXDOUBLE'', or ''BFBOXROUNDED''. Returns ''ok'' on success, or ''err'' if
 #@ width less than 1, total is 0, or invalid style.
 
@@ -921,20 +921,48 @@ func BFVSplit(height, ratios)
 	return result;
 }
 
-#@ <BFCenterRect(region, dialogWidth, dialogHeight)>
-#@ V-1.0.0 (2026-05-29)
+#@ <BFMakeRegion(x, y, width, height)>
+#@ V-1.0.0 (2026-08-26)
 #@
-#@ Returns the top left ''[x, y]'' position for a dialog of ''dialogWidth'' by
-#@ ''dialogHeight'' that is centered within ''region'': ''[x, y, width, height]''.
-#@ If the dialog is larger than the region in either axis, the result is clamped
-#@ to the region's origin so it remains visible.
+#@ Builds a region map.
+#@
+#@ Map fields:
+#@ - ''"x"'' (Number): column where the region begins
+#@ - ''"y"'' (Number): row where the region begins
+#@ - ''"width"'' (Number): width of the region in columns
+#@ - ''"height"'' (Number): height of the region in rows
+
+func BFMakeRegion(x, y, width, height)
+{
+	return m["x": x, "y": y, "width": width, "height": height];
+}
+
+#@ <BFCenterRect(region, dialogWidth, dialogHeight)>
+#@ V-1.0.1 (2026-08-26)
+#@
+#@ Returns the top left position of a ''dialogWidth'' by ''dialogHeight'' dialog
+#@ centered within the ''region'' map, as a map. If the dialog is larger than the
+#@ region, it is pinned to the region's top-left corner and overflows right and
+#@ down instead of centering. Returns ''err'' if a region key is missing.
+#@
+#@ Map fields:
+#@ - ''"x"'' (Number): column where the centered dialog begins
+#@ - ''"y"'' (Number): row where the centered dialog begins
 
 func BFCenterRect(region, dialogWidth, dialogHeight)
 {
-	var rx = region[1];
-	var ry = region[2];
-	var width = region[3];
-	var height = region[4];
+	if not has(region, "x")
+		or not has(region, "y")
+		or not has(region, "width")
+		or not has(region, "height")
+	{
+		return err;
+	}
+
+	var rx = region["x"];
+	var ry = region["y"];
+	var width = region["width"];
+	var height = region["height"];
 
 	var x = rx + int((width - dialogWidth) / 2);
 	var y = ry + int((height - dialogHeight) / 2);
@@ -942,7 +970,7 @@ func BFCenterRect(region, dialogWidth, dialogHeight)
 	if x < rx { x = rx; }
 	if y < ry { y = ry; }
 
-	return [x, y];
+	return m["x": x, "y": y];
 }
 
 #
@@ -982,10 +1010,14 @@ func BFKittyDrawImage(x, y, imagePath, cols, rows)
 }
 
 #@ <BFKittyGetCellPixelSize()>
-#@ V-1.0.1 (2026-06-14)
+#@ V-1.0.2 (2026-08-26)
 #@
-#@ Returns the pixel dimensions of one terminal cell as ''[cellW, cellH]'', or
-#@ ''err'' if the terminal does not support the query ''ESC[16t''.
+#@ Returns the pixel dimensions of one terminal cell as a map, or ''err'' if the
+#@ terminal does not support the query ''CSI + BFCELLQUERY''.
+#@
+#@ Map fields:
+#@ - ''"width"'' (Number): cell width in pixels
+#@ - ''"height"'' (Number): cell height in pixels
 
 func BFKittyGetCellPixelSize()
 {
@@ -1019,7 +1051,7 @@ func BFKittyGetCellPixelSize()
 
 	if cellH <= 0 or cellW <= 0 { return err; }
 
-	return [int(cellW), int(cellH)];
+	return m["width": int(cellW), "height": int(cellH)];
 }
 
 #@ <BFKittyDrawImageAuto(x, y, imagePath, cols)>
@@ -1396,7 +1428,7 @@ func BFNumberInput(x, y, prompt, min, max, defaultValue)
 #
 
 #@ <BFTextBox(x, y, width, height, title, defaultText, style)>
-#@ V-1.0.5 (2026-06-14)
+#@ V-1.0.6 (2026-08-26)
 #@
 #@ Multi-line text editor with full editing capabilities and scrolling at position
 #@ ''x'' and ''y'' with dimensions ''width'' and ''height''. The ''title'' is
@@ -1481,15 +1513,14 @@ func BFTextBox(x, y, width, height, title, defaultText, style)
 		var prevOffset = offset;
 
 		# redrawCurrent: redraw the current cursorLine row
+		var redrawCurrent = false;
 
 		# redrawPrev: also redraw prevCursorLine (when cursorLine changed)
-
-		# fromRedrawLine: redraw from this line index to bottom of visible area
-		# (0 = unused)
-
-		var redrawCurrent = false;
 		var redrawPrev = false;
-		var fromRedrawLine = 0;
+
+		# fromRedrawLine: redraw from this line index to the bottom of the visible
+		# area (false = unused)
+		var fromRedrawLine = false;
 
 		if key == BFKEYESC
 		{
@@ -1515,15 +1546,7 @@ func BFTextBox(x, y, width, height, title, defaultText, style)
 
 			lines[cursorLine] = before;
 
-			var newLines = [];
-
-			for i = 1 to cursorLine { append(newLines, lines[i]); }
-
-			append(newLines, after);
-
-			for i = cursorLine + 1 to len(lines) { append(newLines, lines[i]); }
-
-			lines = newLines;
+			lines = slice(lines, 1, cursorLine) + [after] + slice(lines, cursorLine + 1, len(lines));
 			fromRedrawLine = cursorLine;
 			cursorLine = cursorLine + 1;
 			cursorCol = 0;
@@ -1546,18 +1569,7 @@ func BFTextBox(x, y, width, height, title, defaultText, style)
 				var prevLine = lines[cursorLine - 1];
 				var mergedLine = prevLine + currentLine;
 
-				var newLines = [];
-
-				for i = 1 to cursorLine - 2 { append(newLines, lines[i]); }
-
-				append(newLines, mergedLine);
-
-				for i = cursorLine + 1 to len(lines)
-				{
-					append(newLines, lines[i]);
-				}
-
-				lines = newLines;
+				lines = slice(lines, 1, cursorLine - 2) + [mergedLine] + slice(lines, cursorLine + 1, len(lines));
 				cursorLine = cursorLine - 1;
 				cursorCol = len(prevLine);
 				fromRedrawLine = cursorLine;
@@ -1756,18 +1768,7 @@ func BFTextBox(x, y, width, height, title, defaultText, style)
 				var nextLine = lines[cursorLine + 1];
 				var mergedLine = currentLine + nextLine;
 
-				var newLines = [];
-
-				for i = 1 to cursorLine - 1 { append(newLines, lines[i]); }
-
-				append(newLines, mergedLine);
-
-				for i = cursorLine + 2 to len(lines)
-				{
-					append(newLines, lines[i]);
-				}
-
-				lines = newLines;
+				lines = slice(lines, 1, cursorLine - 1) + [mergedLine] + slice(lines, cursorLine + 2, len(lines));
 				fromRedrawLine = cursorLine;
 			}
 		}
@@ -2388,7 +2389,7 @@ func BFCheckboxList(x, y, width, height, items, checkedItems)
 #
 
 #@ <BFConfirm(x, y, message, defaultYes)>
-#@ V-1.0.2 (2026-04-04)
+#@ V-1.0.3 (2026-08-26)
 #@
 #@ Yes/No confirmation dialog with button navigation at position ''x'' and ''y''.
 #@ The ''message'' is displayed above buttons and ''defaultYes'' determines
@@ -2406,7 +2407,7 @@ func BFConfirm(x, y, message, defaultYes)
 	var running = true;
 	var result = err;
 	var buttonY = y + 2;
-	var yesButtonWidth = 7;
+	var yesButtonWidth = lenv("[ Yes ]");
 
 	HideCursor();
 
@@ -2475,7 +2476,7 @@ func BFConfirm(x, y, message, defaultYes)
 #@ ''stepSize'' is increment/decrement amount. Returns selected value when Enter
 #@ is pressed, or ''err'' if ESC is pressed, width less than 1, or stepSize is 0
 #@ or less. Visual representation uses [====----] style bracket notation. Value
-#@ automatically clamped to min-max range during adjustment.
+#@ automatically kept within the min-max range during adjustment.
 
 func _BFSliderDraw_(x, y, width, label, current, min, max, clearWidth)
 {
@@ -2580,16 +2581,16 @@ func BFSlider(x, y, width, label, value, min, max, stepSize)
 #
 
 #@ <BFKeybindsBar(x, y, width, rows)>
-#@ V-1.0.0 (2026-05-29)
+#@ V-1.0.1 (2026-08-26)
 #@
 #@ Draws a keybinds bar at ''x'' and ''y'' spanning ''width'' columns and ''len(rows)''
-#@ lines. ''rows'' is a list of rows, each a list of ''[key, action]'' pairs drawn
-#@ centered on its line; an empty row leaves a blank padding line. Always returns
-#@ ''ok''.
+#@ lines. ''rows'' is a list of rows, each a list of maps with keys ''key'' and
+#@ ''action'' drawn centered on its line; an empty row leaves a blank padding line.
+#@ Always returns ''ok''.
 
 func _BFKeybindWidth_(key, action)
 {
-	return lenv(key) + 1 + lenv(action) + 3;
+	return lenv(key) + lenv(" " + action + "   ");
 }
 
 func _BFDrawKeybind_(x, y, key, action)
@@ -2602,10 +2603,11 @@ func _BFDrawKeybind_(x, y, key, action)
 	SetAttribute(COLORBGWHITE);
 
 	var actionX = x + lenv(key);
+	var actionText = " " + action + "   ";
 
-	BFDrawText(actionX, y, " " + action + "   ");
+	BFDrawText(actionX, y, actionText);
 
-	return actionX + lenv(action) + 4;
+	return actionX + lenv(actionText);
 }
 
 func BFKeybindsBar(x, y, width, rows)
@@ -2627,7 +2629,7 @@ func BFKeybindsBar(x, y, width, rows)
 		for i = 1 to len(items)
 		{
 			var item = items[i];
-			lineWidth = lineWidth + _BFKeybindWidth_(item[1], item[2]);
+			lineWidth = lineWidth + _BFKeybindWidth_(item["key"], item["action"]);
 		}
 
 		var xpos = x + int((width - lineWidth) / 2);
@@ -2637,7 +2639,7 @@ func BFKeybindsBar(x, y, width, rows)
 		for i = 1 to len(items)
 		{
 			var item = items[i];
-			xpos = _BFDrawKeybind_(xpos, rowY, item[1], item[2]);
+			xpos = _BFDrawKeybind_(xpos, rowY, item["key"], item["action"]);
 		}
 	}
 
@@ -2650,24 +2652,27 @@ func BFKeybindsBar(x, y, width, rows)
 # boxflinger - dialogs.chh
 #
 
-#@ <BFShowMessage(region, dialogWidth, title, message, color)>
-#@ V-1.0.0 (2026-05-31)
-#@
-#@ Shows a message dialog centered within ''region'': ''[x, y, width, height]''.
-#@ The dialog is ''dialogWidth'' columns wide and auto-sizes its height from the
-#@ wrapped ''message'', clamped to the region. ''color'' is applied to each
-#@ message line. Dialog is dismissed by pressing any key. Always returns ''ok''.
+# Draws the frame and message lines for dialogs. Returns the layout as a map, or
+# err if a region key is missing.
+#
+# Map fields:
+# - ''"x"'' (Number): column where the dialog begins
+# - ''"y"'' (Number): row where the dialog begins
+# - ''"dialogHeight"'' (Number): height of the dialog in rows
+# - ''"contentX"'' (Number): left column where the message text is drawn
+# - ''"lineCount"'' (Number): number of message lines drawn
 
-func BFShowMessage(region, dialogWidth, title, message, color)
+func _BFDrawDialog_(region, dialogWidth, title, message, color)
 {
-	HideCursor();
-
 	var contentWidth = dialogWidth - 4;
 	var wrapped = BFWrapText(message, contentWidth);
 	var lineCount = len(wrapped);
 
 	var dialogHeight = lineCount + 5;
-	var maxHeight = region[4];
+
+	if not has(region, "height") { return err; }
+
+	var maxHeight = region["height"];
 
 	if dialogHeight > maxHeight
 	{
@@ -2678,8 +2683,11 @@ func BFShowMessage(region, dialogWidth, title, message, color)
 	}
 
 	var origin = BFCenterRect(region, dialogWidth, dialogHeight);
-	var x = origin[1];
-	var y = origin[2];
+
+	if iserr(origin) { return err; }
+
+	var x = origin["x"];
+	var y = origin["y"];
 
 	BFClearRegion(x, y, dialogWidth, dialogHeight);
 	BFDrawFrame(x, y, dialogWidth, dialogHeight, title, BFBOXROUNDED);
@@ -2693,6 +2701,34 @@ func BFShowMessage(region, dialogWidth, title, message, color)
 		SetAttribute(COLORRESET);
 	}
 
+	return m["x": x, "y": y, "dialogHeight": dialogHeight, "contentX": contentX, "lineCount": lineCount];
+}
+
+#@ <BFShowMessage(region, dialogWidth, title, message, color)>
+#@ V-1.0.1 (2026-08-26)
+#@
+#@ Shows a message dialog centered within the ''region'' map. The dialog is
+#@ ''dialogWidth'' columns wide and auto-sizes its height from the wrapped
+#@ ''message'', limited by the region's height. ''color'' is applied to each message
+#@ line. Dialog is dismissed by pressing any key. Returns ''ok'' on success, or
+#@ ''err'' if a region key is missing.
+
+func BFShowMessage(region, dialogWidth, title, message, color)
+{
+	HideCursor();
+
+	var layout = _BFDrawDialog_(region, dialogWidth, title, message, color);
+
+	if iserr(layout)
+	{
+		ShowCursor();
+		return err;
+	}
+
+	var y = layout["y"];
+	var dialogHeight = layout["dialogHeight"];
+	var contentX = layout["contentX"];
+
 	BFDrawText(contentX, y + dialogHeight - 2, "Press any key...");
 
 	getch();
@@ -2703,47 +2739,31 @@ func BFShowMessage(region, dialogWidth, title, message, color)
 }
 
 #@ <BFShowConfirm(region, dialogWidth, title, message, defaultYes)>
-#@ V-1.0.0 (2026-05-31)
+#@ V-1.0.1 (2026-08-26)
 #@
-#@ Shows a Yes / No dialog centered within ''region'': ''[x, y, width, height]''.
-#@ The dialog is ''dialogWidth'' columns wide and auto-sizes its height from the
-#@ wrapped ''message'', clamped to the region. ''defaultYes'' selects the initial
-#@ button. Returns ''true'' on Yes, ''false'' on No, or ''err'' if ESC is pressed.
+#@ Shows a Yes / No dialog centered within the ''region'' map. The dialog is
+#@ ''dialogWidth'' columns wide and auto-sizes its height from the wrapped
+#@ ''message'', limited by the region's height. ''defaultYes'' selects the initial
+#@ button. Returns ''true'' on Yes, ''false'' on No, or ''err'' if ESC is pressed
+#@ or a region key is missing.
 
 func BFShowConfirm(region, dialogWidth, title, message, defaultYes)
 {
 	HideCursor();
 
-	var contentWidth = dialogWidth - 4;
-	var wrapped = BFWrapText(message, contentWidth);
-	var lineCount = len(wrapped);
+	var layout = _BFDrawDialog_(region, dialogWidth, title, message, COLORRESET);
 
-	var dialogHeight = lineCount + 5;
-	var maxHeight = region[4];
-
-	if dialogHeight > maxHeight
+	if iserr(layout)
 	{
-		dialogHeight = maxHeight;
-		lineCount = dialogHeight - 5;
-
-		if lineCount < 0 { lineCount = 0; }
+		ShowCursor();
+		return err;
 	}
 
-	var origin = BFCenterRect(region, dialogWidth, dialogHeight);
-	var x = origin[1];
-	var y = origin[2];
+	var y = layout["y"];
+	var contentX = layout["contentX"];
+	var lineCount = layout["lineCount"];
 
-	BFClearRegion(x, y, dialogWidth, dialogHeight);
-	BFDrawFrame(x, y, dialogWidth, dialogHeight, title, BFBOXROUNDED);
-
-	var contentX = x + 2;
-
-	for i = 1 to lineCount
-	{
-		BFDrawText(contentX, y + 1 + i, BFClipText(wrapped[i], contentWidth));
-	}
-
-	# BFConfirm does Cursor hiding / showing internally, no need here
+	# BFConfirm hides and shows the cursor itself
 
 	return BFConfirm(contentX, y + lineCount + 2, "", defaultYes);
 }
@@ -2758,7 +2778,3 @@ load("libprint.chh");
 load("libhttp.chh");
 
 # ---
-
-
-
-

@@ -148,7 +148,7 @@ func MounterGetColumnWidths(width)
 }
 
 #@ <GetMounterRegion(screenWidth, screenHeight)>
-#@ Returns the region right of the sidebar: ''[x, y, width, height]''.
+#@ Returns the region right of the sidebar as a region map.
 
 func GetMounterRegion(screenWidth, screenHeight)
 {
@@ -162,11 +162,11 @@ func GetMounterRegion(screenWidth, screenHeight)
 	# Keybinds bar state is taken into account in MounterBottomReserve()
 	var height = screenHeight - MounterBottomReserve();
 
-	return [x, y, width, height];
+	return BFMakeRegion(x, y, width, height);
 }
 
 #@ <GetMounterSidebarRegion(screenHeight)>
-#@ Returns the region of the disk sidebar: ''[x, y, width, height]''.
+#@ Returns the region of the disk sidebar as a region map.
 
 func GetMounterSidebarRegion(screenHeight)
 {
@@ -175,7 +175,7 @@ func GetMounterSidebarRegion(screenHeight)
 	var width = SIDEBARWIDTH;
 	var height = screenHeight - MounterBottomReserve();
 
-	return [x, y, width, height];
+	return BFMakeRegion(x, y, width, height);
 }
 
 #@ <MounterSidebarEntryHeight(entry, isFirst)>
@@ -199,8 +199,8 @@ func MounterLastDrawableDisk(offset)
 {
 	var region = GetMounterSidebarRegion(mounterScreenHeight);
 
-	var lastY = region[2] + region[4] - 1; # y pos + height -1
-	var rowY = region[2];
+	var lastY = region["y"] + region["height"] - 1;
+	var rowY = region["y"];
 	var last = offset - 1;
 
 	# Walk down the sidebar from offset, one entry at a time, and stop when the
@@ -231,11 +231,11 @@ func GetMounterListRegion(screenWidth, screenHeight)
 {
 	var region = GetMounterRegion(screenWidth, screenHeight);
 
-	var headerY = region[2] + TITLEBARHEIGHT;
+	var headerY = region["y"] + TITLEBARHEIGHT;
 	var listY = headerY + LISTHEADERHEIGHT;
 
 	# List height runs from listY to the bottom of the panel
-	return [region[1], headerY, listY, region[3], region[2] + region[4] - listY];
+	return [region["x"], headerY, listY, region["width"], region["y"] + region["height"] - listY];
 }
 
 #@ <MounterDrawHeaderBar(x, y, width)>
@@ -361,8 +361,8 @@ func MounterDrawEmptyState(x, y, width, height)
 	# The placeholder is 3 rows tall, so it cannot be drawn on a shorter panel
 	if height < 3 { return; }
 
-	var origin = BFCenterRect([x, y, width, height], width, 3);
-	var shrugY = origin[2];
+	var origin = BFCenterRect(BFMakeRegion(x, y, width, height), width, 3);
+	var shrugY = origin["y"];
 
 	SetFGColor256(DFNCOLORDIM);
 	BFDrawText(x, shrugY, BFPadText("¯\\_(ツ)_/¯", width, BFALIGNCENTER));
@@ -590,25 +590,25 @@ func MounterDrawKeybindsBar()
 	if mounterFocusPanel == FOCUSSIDEBAR
 	{
 		append(rows, [
-				["↑↓", "Navigate"],
-				["→ Enter", "Go"],
-				["Tab", "Volumes"],
-				["i", "Info"],
-				["e", "Eject"],
-				["r", "Refresh"],
-				["Esc", "Quit"]
+				m["key": "↑↓", "action": "Navigate"],
+				m["key": "→ Enter", "action": "Go"],
+				m["key": "Tab", "action": "Volumes"],
+				m["key": "i", "action": "Info"],
+				m["key": "e", "action": "Eject"],
+				m["key": "r", "action": "Refresh"],
+				m["key": "Esc", "action": "Quit"]
 			]);
 	}
 	else
 	{
 		append(rows, [
-				["↑↓", "Navigate"],
-				["←", "Unmount/Lock"],
-				["→", "Mount/Unlock/Open"],
-				["Tab", "Disks"],
-				["i", "Info"],
-				["r", "Refresh"],
-				["Esc", "Quit"]
+				m["key": "↑↓", "action": "Navigate"],
+				m["key": "←", "action": "Unmount/Lock"],
+				m["key": "→", "action": "Mount/Unlock/Open"],
+				m["key": "Tab", "action": "Disks"],
+				m["key": "i", "action": "Info"],
+				m["key": "r", "action": "Refresh"],
+				m["key": "Esc", "action": "Quit"]
 			]);
 	}
 
@@ -636,10 +636,10 @@ func MounterDrawScreen()
 		separatorHeight = mounterScreenHeight - KEYBINDSBARHEIGHT;
 	}
 
-	MounterDrawSidebar(sidebar[1], sidebar[2], sidebar[3], sidebar[4]);
+	MounterDrawSidebar(sidebar["x"], sidebar["y"], sidebar["width"], sidebar["height"]);
 	MounterDrawVerticalSeparator(SIDEBARWIDTH, 1, separatorHeight);
 
-	MounterDrawHeaderBar(panel[1], panel[2], panel[3]);
+	MounterDrawHeaderBar(panel["x"], panel["y"], panel["width"]);
 
 	if len(mounterVolumes) == 0
 	{

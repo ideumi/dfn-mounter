@@ -52,8 +52,8 @@ func MounterShowInfoDialog(title, labelWidth, rows)
 
 	var region = GetMounterRegion(mounterScreenWidth, mounterScreenHeight);
 	var origin = BFCenterRect(region, width, height);
-	var x = origin[1];
-	var y = origin[2];
+	var x = origin["x"];
+	var y = origin["y"];
 
 	BFClearRegion(x, y, width, height);
 	BFDrawFrame(x, y, width, height, title, BFBOXROUNDED);
@@ -88,8 +88,8 @@ func MounterShowAbout()
 
 	var region = GetMounterRegion(mounterScreenWidth, mounterScreenHeight);
 	var origin = BFCenterRect(region, width, height);
-	var x = origin[1];
-	var y = origin[2];
+	var x = origin["x"];
+	var y = origin["y"];
 
 	BFClearRegion(x, y, width, height);
 	BFDrawFrame(x, y, width, height, "About", BFBOXROUNDED);

@@ -1,0 +1,3 @@
+What's New:
+
+	- bump to boxflinger V-1.0.12

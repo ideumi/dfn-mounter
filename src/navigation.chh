@@ -195,7 +195,7 @@ func MoveSelectionRedraw(delta)
 	{
 		var panel = GetMounterRegion(mounterScreenWidth, mounterScreenHeight);
 
-		MounterDrawHeaderBar(panel[1], panel[2], panel[3]);
+		MounterDrawHeaderBar(panel["x"], panel["y"], panel["width"]);
 		MounterRedrawVolumeRow(oldIndex);
 		MounterRedrawVolumeRow(mounterSelectedIndex);
 
