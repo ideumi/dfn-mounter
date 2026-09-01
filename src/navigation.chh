@@ -119,7 +119,7 @@ func GetVisibleVolumeCount()
 	var region = GetMounterListRegion(mounterScreenWidth, mounterScreenHeight);
 
 	# Each entry occupies VOLUMEROWHEIGHT rows on screen
-	return int(region[5] / VOLUMEROWHEIGHT);
+	return int(region["height"] / VOLUMEROWHEIGHT);
 }
 
 #@ <MounterAdjustScroll()>

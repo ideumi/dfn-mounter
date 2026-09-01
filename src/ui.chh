@@ -131,8 +131,13 @@ func SidebarDiskDetail(disk)
 }
 
 #@ <MounterGetColumnWidths(width)>
-#@ Returns the volume list column widths ''[nameColWidth, fsColWidth,
-#@ statusColWidth, sizeColWidth]'' for a content area of ''width'' columns.
+#@ Returns the volume list column widths for a content area of ''width'' columns.
+#@
+#@ Map fields:
+#@ - ''"name"'' (Number): width of the volume name column
+#@ - ''"fs"'' (Number): width of the fstype column
+#@ - ''"status"'' (Number): width of the status column
+#@ - ''"size"'' (Number): width of the size column
 
 func MounterGetColumnWidths(width)
 {
@@ -144,11 +149,17 @@ func MounterGetColumnWidths(width)
 	# took theirs
 	var nameColWidth = width - fsColWidth - statusColWidth - sizeColWidth;
 
-	return [nameColWidth, fsColWidth, statusColWidth, sizeColWidth];
+	return m["name": nameColWidth, "fs": fsColWidth, "status": statusColWidth, "size": sizeColWidth];
 }
 
 #@ <GetMounterRegion(screenWidth, screenHeight)>
 #@ Returns the region right of the sidebar as a region map.
+#@
+#@ Map fields:
+#@ - ''"x"'' (Number): column where the region begins
+#@ - ''"y"'' (Number): row where the region begins
+#@ - ''"width"'' (Number): width of the region in columns
+#@ - ''"height"'' (Number): height of the region in rows
 
 func GetMounterRegion(screenWidth, screenHeight)
 {
@@ -167,6 +178,12 @@ func GetMounterRegion(screenWidth, screenHeight)
 
 #@ <GetMounterSidebarRegion(screenHeight)>
 #@ Returns the region of the disk sidebar as a region map.
+#@
+#@ Map fields:
+#@ - ''"x"'' (Number): column where the region begins
+#@ - ''"y"'' (Number): row where the region begins
+#@ - ''"width"'' (Number): width of the region in columns
+#@ - ''"height"'' (Number): height of the region in rows
 
 func GetMounterSidebarRegion(screenHeight)
 {
@@ -225,17 +242,24 @@ func MounterLastDrawableDisk(offset)
 }
 
 #@ <GetMounterListRegion(screenWidth, screenHeight)>
-#@ Returns the region of the volume list: ''[x, headerY, listY, width, height]''.
+#@ Returns the region of the volume list below the title bar and column header
+#@ rows as a region map.
+#@
+#@ Map fields:
+#@ - ''"x"'' (Number): column where the region begins
+#@ - ''"y"'' (Number): row where the region begins
+#@ - ''"width"'' (Number): width of the region in columns
+#@ - ''"height"'' (Number): height of the region in rows
 
 func GetMounterListRegion(screenWidth, screenHeight)
 {
 	var region = GetMounterRegion(screenWidth, screenHeight);
 
-	var headerY = region["y"] + TITLEBARHEIGHT;
-	var listY = headerY + LISTHEADERHEIGHT;
+	# The list starts below the title bar and the column header row
+	var listY = region["y"] + TITLEBARHEIGHT + LISTHEADERHEIGHT;
 
 	# List height runs from listY to the bottom of the panel
-	return [region["x"], headerY, listY, region["width"], region["y"] + region["height"] - listY];
+	return BFMakeRegion(region["x"], listY, region["width"], region["y"] + region["height"] - listY);
 }
 
 #@ <MounterDrawHeaderBar(x, y, width)>
@@ -271,10 +295,10 @@ func MounterDrawHeader(x, y, width)
 	BFClearRegion(x, y, width, LISTHEADERHEIGHT);
 
 	var cols = MounterGetColumnWidths(width);
-	var nameColWidth = cols[1];
-	var fsColWidth = cols[2];
-	var statusColWidth = cols[3];
-	var sizeColWidth = cols[4];
+	var nameColWidth = cols["name"];
+	var fsColWidth = cols["fs"];
+	var statusColWidth = cols["status"];
+	var sizeColWidth = cols["size"];
 
 	var nameHeader = BFPadText(VOLUMENAMEPREFIX + "VOLUME", nameColWidth, BFALIGNLEFT);
 	var fsHeader = BFPadText("FSTYPE", fsColWidth, BFALIGNLEFT);
@@ -383,10 +407,10 @@ func MounterDrawVolumeList(x, y, width, height)
 	}
 
 	var cols = MounterGetColumnWidths(width);
-	var nameColWidth = cols[1];
-	var fsColWidth = cols[2];
-	var statusColWidth = cols[3];
-	var sizeColWidth = cols[4];
+	var nameColWidth = cols["name"];
+	var fsColWidth = cols["fs"];
+	var statusColWidth = cols["status"];
+	var sizeColWidth = cols["size"];
 
 	var visibleVolumes = int(height / VOLUMEROWHEIGHT);
 
@@ -414,18 +438,18 @@ func MounterRedrawVolumeRow(idx)
 {
 	var region = GetMounterListRegion(mounterScreenWidth, mounterScreenHeight);
 
-	var visibleVolumes = int(region[5] / VOLUMEROWHEIGHT);
+	var visibleVolumes = int(region["height"] / VOLUMEROWHEIGHT);
 
 	# Which row of the visible list the entry is on
 	var volumeRow = idx - mounterScrollOffset + 1;
 
 	if volumeRow < 1 or volumeRow > visibleVolumes { return; }
 
-	var cols = MounterGetColumnWidths(region[4]);
+	var cols = MounterGetColumnWidths(region["width"]);
 
-	var baseY = region[3] + (volumeRow - 1) * VOLUMEROWHEIGHT;
+	var baseY = region["y"] + (volumeRow - 1) * VOLUMEROWHEIGHT;
 
-	MounterDrawVolumeRow(region[1], baseY, region[4], cols[1], cols[2], cols[3], cols[4], idx);
+	MounterDrawVolumeRow(region["x"], baseY, region["width"], cols["name"], cols["fs"], cols["status"], cols["size"], idx);
 }
 
 #@ <MounterDrawSidebarRow(x, y, width, idx, isFirst)>
@@ -641,15 +665,17 @@ func MounterDrawScreen()
 
 	MounterDrawHeaderBar(panel["x"], panel["y"], panel["width"]);
 
+	var headerY = panel["y"] + TITLEBARHEIGHT;
+
 	if len(mounterVolumes) == 0
 	{
-		BFClearRegion(region[1], region[2], region[4], LISTHEADERHEIGHT);
+		BFClearRegion(region["x"], headerY, region["width"], LISTHEADERHEIGHT);
 	}
 	else
 	{
-		MounterDrawHeader(region[1], region[2], region[4]);
+		MounterDrawHeader(region["x"], headerY, region["width"]);
 	}
 
-	MounterDrawVolumeList(region[1], region[3], region[4], region[5]);
+	MounterDrawVolumeList(region["x"], region["y"], region["width"], region["height"]);
 	MounterDrawBottom();
 }
