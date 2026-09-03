@@ -1,4 +1,4 @@
 What's New:
 
-	- bump to boxflinger V-1.0.12
+	- bump to boxflinger V-1.0.13
 	- code quality and readability improvements
