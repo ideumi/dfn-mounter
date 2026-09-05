@@ -18,7 +18,7 @@ func ParsePairValue(line, key)
 
 	# Find closing quote and skip \" escapes
 	var pos = start;
-	var endPos = -1;
+	var endPos = err;
 
 	while pos <= lineLen
 	{
@@ -42,7 +42,7 @@ func ParsePairValue(line, key)
 		pos = pos + 1;
 	}
 
-	if endPos < 0 { return ""; }
+	if iserr(endPos) { return ""; }
 	if endPos == start { return ""; }
 
 	var raw = slice(line, start, endPos - 1);
@@ -255,6 +255,10 @@ func IsDeviceEntry(entry)
 #@ - ''"transport"'' (String): disk transport, e.g. ''usb'' or ''nvme''
 #@
 #@ - volume-only fields (''fstype'', ''label'', ''uuid'', ''mountpoint'', ''pkname'' and ''parent'') are all ''err''
+#@
+#@ Section header entries have only two fields: ''"type"'' (always ''section'')
+#@ and ''"label"'' (the section title, one of ''Removable'', ''Internal'' or
+#@ ''System'').
 
 func BuildDiskList(devices)
 {
@@ -360,6 +364,8 @@ func BuildDiskList(devices)
 
 #@ <VolumesForDisk(devices, diskName)>
 #@ Returns every device in ''devices'' whose parent disk is ''diskName''.
+#@
+#@ Map fields: the device map fields from ''LoadDevices()''.
 
 func VolumesForDisk(devices, diskName)
 {

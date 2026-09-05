@@ -18,6 +18,19 @@ func MounterUpdateScreenSize()
 
 #@ <MounterCurrentState()>
 #@ Packs the relevant rendering state values into a single map for MounterWinChActor().
+#@
+#@ Map fields:
+#@ - ''"devices"'' (List): the device maps from ''LoadDevices()''
+#@ - ''"disks"'' (List): the disk maps and section header entries from ''BuildDiskList()''
+#@ - ''"selectedDisk"'' (Number): index of the selected disk
+#@ - ''"diskScrollOffset"'' (Number): index of the first visible disk
+#@ - ''"activeDisk"'' (String): name of the disk whose volumes are listed
+#@ - ''"volumes"'' (List): the device maps from ''VolumesForDisk()''
+#@ - ''"selectedIndex"'' (Number): index of the selected volume
+#@ - ''"scrollOffset"'' (Number): index of the first visible volume
+#@ - ''"focusPanel"'' (Number): ''FOCUSSIDEBAR'' or ''FOCUSVOLUMES''
+#@ - ''"showKeybinds"'' (Bool): whether the keybinds bar is shown
+#@ - ''"inDialog"'' (Bool): whether a dialog is currently open
 
 func MounterCurrentState()
 {

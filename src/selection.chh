@@ -7,6 +7,8 @@
 #@ Returns the currently selected sidebar entry, or ''err'' if the current
 #@ selection is not valid. A valid selection is an in-range index pointing at a
 #@ disk and not a section header.
+#@
+#@ Map fields: the disk map fields from ''BuildDiskList()''.
 
 func SelectedDisk()
 {
@@ -43,6 +45,8 @@ func IndexOfName(entries, name)
 #@ <ActiveDisk()>
 #@ Returns the disk entry whose volumes are currently listed, or ''err'' if there
 #@ is none.
+#@
+#@ Map fields: the disk map fields from ''BuildDiskList()''.
 
 func ActiveDisk()
 {
@@ -56,6 +60,8 @@ func ActiveDisk()
 #@ <SelectedVolume()>
 #@ Returns the currently selected volume of the volume list, or ''err'' if the
 #@ current selection is out of range.
+#@
+#@ Map fields: the device map fields from ''LoadDevices()''.
 
 func SelectedVolume()
 {

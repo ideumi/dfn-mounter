@@ -40,8 +40,12 @@ func CloseMounterDialog()
 }
 
 #@ <MounterShowInfoDialog(title, labelWidth, rows)>
-#@ Shows an info dialog titled ''title'' that displays ''rows'' of ''[label, value]''
-#@ with labels padded to ''labelWidth''.
+#@ Shows an info dialog titled ''title'' that displays ''rows'' of label/value
+#@ maps with labels padded to ''labelWidth''.
+#@
+#@ Row map fields:
+#@ - ''"label"'' (String): the field name, drawn left-aligned at ''labelWidth''
+#@ - ''"value"'' (String): the field value, drawn right of the label
 
 func MounterShowInfoDialog(title, labelWidth, rows)
 {
@@ -52,8 +56,8 @@ func MounterShowInfoDialog(title, labelWidth, rows)
 
 	var region = GetMounterRegion(mounterScreenWidth, mounterScreenHeight);
 	var origin = BFCenterRect(region, width, height);
-	var x = origin[1];
-	var y = origin[2];
+	var x = origin["x"];
+	var y = origin["y"];
 
 	BFClearRegion(x, y, width, height);
 	BFDrawFrame(x, y, width, height, title, BFBOXROUNDED);
@@ -66,7 +70,8 @@ func MounterShowInfoDialog(title, labelWidth, rows)
 		var row = rows[rowIndex];
 
 		BFDrawText(contentX, y + rowIndex,
-			BFPadText(row[1], labelWidth, BFALIGNLEFT) + BFClipText(row[2], valueWidth));
+			BFPadText(row["label"], labelWidth, BFALIGNLEFT) +
+			BFClipText(row["value"], valueWidth));
 	}
 
 	BFDrawText(contentX, y + len(rows) + 2, "Press any key...");
@@ -88,8 +93,8 @@ func MounterShowAbout()
 
 	var region = GetMounterRegion(mounterScreenWidth, mounterScreenHeight);
 	var origin = BFCenterRect(region, width, height);
-	var x = origin[1];
-	var y = origin[2];
+	var x = origin["x"];
+	var y = origin["y"];
 
 	BFClearRegion(x, y, width, height);
 	BFDrawFrame(x, y, width, height, "About", BFBOXROUNDED);
@@ -177,16 +182,16 @@ func MounterShowVolumeInfo(volume)
 	}
 
 	MounterShowInfoDialog("Volume Info", 9, [
-			["Name:", DeviceDisplayName(volume)],
-			["Path:", DevicePath(volume)],
-			["Type:", DeviceTypeDescription(volume)],
-			["FS:", DefaultIfEmpty(volume["fstype"], "(none)")],
-			["Size:", volume["size"]],
-			["Label:", DefaultIfEmpty(volume["label"], "(none)")],
-			["UUID:", DefaultIfEmpty(volume["uuid"], "(none)")],
-			["Status:", DeviceStatusText(volume, mounterDevices)],
-			["Drive:", driveStr],
-			["Serial:", DefaultIfEmpty(volume["serial"], "(unknown)")]
+			m["label": "Name:", "value": DeviceDisplayName(volume)],
+			m["label": "Path:", "value": DevicePath(volume)],
+			m["label": "Type:", "value": DeviceTypeDescription(volume)],
+			m["label": "FS:", "value": DefaultIfEmpty(volume["fstype"], "(none)")],
+			m["label": "Size:", "value": volume["size"]],
+			m["label": "Label:", "value": DefaultIfEmpty(volume["label"], "(none)")],
+			m["label": "UUID:", "value": DefaultIfEmpty(volume["uuid"], "(none)")],
+			m["label": "Status:", "value": DeviceStatusText(volume, mounterDevices)],
+			m["label": "Drive:", "value": driveStr],
+			m["label": "Serial:", "value": DefaultIfEmpty(volume["serial"], "(unknown)")]
 		]);
 }
 
@@ -200,13 +205,13 @@ func MounterShowDiskInfo(disk)
 	if disk["removable"] { removable = "yes"; }
 
 	MounterShowInfoDialog("Disk Info", 11, [
-			["Model:", DefaultIfEmpty(disk["model"], "(unknown)")],
-			["Path:", "/dev/" + disk["name"]],
-			["Size:", disk["size"]],
-			["Serial:", DefaultIfEmpty(disk["serial"], "(unknown)")],
-			["Transport:", DefaultIfEmpty(disk["transport"], "(unknown)")],
-			["Removable:", removable],
-			["Volumes:", str(len(VolumesForDisk(mounterDevices, disk["name"])))]
+			m["label": "Model:", "value": DefaultIfEmpty(disk["model"], "(unknown)")],
+			m["label": "Path:", "value": "/dev/" + disk["name"]],
+			m["label": "Size:", "value": disk["size"]],
+			m["label": "Serial:", "value": DefaultIfEmpty(disk["serial"], "(unknown)")],
+			m["label": "Transport:", "value": DefaultIfEmpty(disk["transport"], "(unknown)")],
+			m["label": "Removable:", "value": removable],
+			m["label": "Volumes:", "value": str(len(VolumesForDisk(mounterDevices, disk["name"])))]
 		]);
 }
 

@@ -119,7 +119,7 @@ func GetVisibleVolumeCount()
 	var region = GetMounterListRegion(mounterScreenWidth, mounterScreenHeight);
 
 	# Each entry occupies VOLUMEROWHEIGHT rows on screen
-	return int(region[5] / VOLUMEROWHEIGHT);
+	return int(region["height"] / VOLUMEROWHEIGHT);
 }
 
 #@ <MounterAdjustScroll()>
@@ -195,7 +195,7 @@ func MoveSelectionRedraw(delta)
 	{
 		var panel = GetMounterRegion(mounterScreenWidth, mounterScreenHeight);
 
-		MounterDrawHeaderBar(panel[1], panel[2], panel[3]);
+		MounterDrawHeaderBar(panel["x"], panel["y"], panel["width"]);
 		MounterRedrawVolumeRow(oldIndex);
 		MounterRedrawVolumeRow(mounterSelectedIndex);
 
