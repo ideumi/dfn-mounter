@@ -87,6 +87,9 @@ func ResolveDisk(name, parentMap)
 #@ - ''"label"'' (String): filesystem label
 #@ - ''"uuid"'' (String): filesystem UUID
 #@ - ''"mountpoint"'' (String): current mountpoint, or ''[SWAP]''
+#@ - ''"fsSize"'' (String): filesystem capacity, e.g. ''15G''
+#@ - ''"fsUsed"'' (String): filesystem space in use, e.g. ''4G''
+#@ - ''"fsUsePct"'' (String): filesystem usage percentage, e.g. ''27%''
 #@ - ''"model"'' (String): parent disk model
 #@ - ''"serial"'' (String): parent disk serial number
 #@ - ''"diskSize"'' (String): human-readable size of the parent disk, e.g. ''1T''
@@ -182,6 +185,9 @@ func LoadDevices()
 		var uuid = ParsePairValue(line, "UUID");
 		var mountpoint = ParsePairValue(line, "MOUNTPOINT");
 		var pkname = ParsePairValue(line, "PKNAME");
+		var fsSize = ParsePairValue(line, "FSSIZE");
+		var fsUsed = ParsePairValue(line, "FSUSED");
+		var fsUsePct = ParsePairValue(line, "FSUSE%");
 
 		var parent = "";
 
@@ -214,6 +220,9 @@ func LoadDevices()
 			"label": label,
 			"uuid": uuid,
 			"mountpoint": mountpoint,
+			"fsSize": fsSize,
+			"fsUsed": fsUsed,
+			"fsUsePct": fsUsePct,
 			"model": model,
 			"serial": serial,
 			"diskSize": diskSize,
@@ -254,7 +263,7 @@ func IsDeviceEntry(entry)
 #@ - ''"removable"'' (Bool): whether the disk is removable
 #@ - ''"transport"'' (String): disk transport, e.g. ''usb'' or ''nvme''
 #@
-#@ - volume-only fields (''fstype'', ''label'', ''uuid'', ''mountpoint'', ''pkname'' and ''parent'') are all ''err''
+#@ - volume-only fields (''fstype'', ''label'', ''uuid'', ''mountpoint'', ''fsSize'', ''fsUsed'', ''fsUsePct'', ''pkname'' and ''parent'') are all ''err''
 #@
 #@ Section header entries have only two fields: ''"type"'' (always ''section'')
 #@ and ''"label"'' (the section title, one of ''Removable'', ''Internal'' or
@@ -296,6 +305,9 @@ func BuildDiskList(devices)
 				"label": err,
 				"uuid": err,
 				"mountpoint": err,
+				"fsSize": err,
+				"fsUsed": err,
+				"fsUsePct": err,
 				"pkname": err,
 				"parent": err
 			]);

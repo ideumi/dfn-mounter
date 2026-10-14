@@ -25,6 +25,21 @@ func DeviceStatusText(dev, devices)
 	return "[unmounted]";
 }
 
+#@ <DeviceFsUsage(dev)>
+#@ Returns the filesystem capacity of ''dev''ice as a ''"used / size (percent)"''
+#@ string, or ''""'' when the entry reports none.
+
+func DeviceFsUsage(dev)
+{
+	if dev["fsSize"] == "" or dev["fsUsed"] == "" { return ""; }
+
+	var usage = dev["fsUsed"] + " / " + dev["fsSize"];
+
+	if dev["fsUsePct"] != "" { usage = usage + " (" + dev["fsUsePct"] + ")"; }
+
+	return usage;
+}
+
 #@ <SerialTail(serial)>
 #@ Returns the last 6 characters of the ''serial'' number, prefixed with "...".
 #@ Returns the whole serial if it is 6 characters or shorter.
