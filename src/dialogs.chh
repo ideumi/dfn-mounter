@@ -186,7 +186,7 @@ func MounterShowVolumeInfo(volume)
 			m["label": "Path:", "value": DevicePath(volume)],
 			m["label": "Type:", "value": DeviceTypeDescription(volume)],
 			m["label": "FS:", "value": DefaultIfEmpty(volume["fstype"], "(none)")],
-			m["label": "Size:", "value": volume["size"]],
+			m["label": "Size:", "value": DefaultIfEmpty(DeviceFsUsage(volume), volume["size"])],
 			m["label": "Label:", "value": DefaultIfEmpty(volume["label"], "(none)")],
 			m["label": "UUID:", "value": DefaultIfEmpty(volume["uuid"], "(none)")],
 			m["label": "Status:", "value": DeviceStatusText(volume, mounterDevices)],

@@ -1,0 +1,3 @@
+What's New:
+
+	- the volume info dialog now shows used and total filesystem capacity alongside a percentage for applicable entries
